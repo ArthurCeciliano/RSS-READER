@@ -16,10 +16,12 @@ const BASE_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? 'http://
 export class ApiError extends Error {}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...init,
-    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
-  });
+  // Only send Content-Type when there's actually a body -- Fastify's JSON body
+  // parser rejects an empty body sent with application/json (e.g. a plain
+  // POST /refresh or DELETE with no payload) with a 400.
+  const headers: Record<string, string> = { ...(init?.headers as Record<string, string> | undefined) };
+  if (init?.body) headers['Content-Type'] = 'application/json';
+  const res = await fetch(`${BASE_URL}${path}`, { ...init, headers });
   if (!res.ok && res.status !== 202 && res.status !== 422) {
     let message = `${init?.method ?? 'GET'} ${path} failed: ${res.status}`;
     try {
