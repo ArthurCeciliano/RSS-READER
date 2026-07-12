@@ -22,16 +22,16 @@ function ItemMeta({ item }: { item: FeedItem }) {
 }
 
 export function ItemList({ items, viewMode, onOpenItem, onToggleStar, onLoadMore, hasMore, selectedItemId }: ItemListProps) {
-  if (viewMode === 'cards' || viewMode === 'three-pane') {
+  if (viewMode === 'cards') {
     return (
-      <div className={`item-grid ${viewMode === 'three-pane' ? 'three-pane-list' : ''}`}>
+      <div className="item-grid">
         {items.map((item) => (
           <article
             key={item.id}
             className={`item-card ${item.isRead ? 'read' : ''} ${selectedItemId === item.id ? 'selected' : ''}`}
             onClick={() => onOpenItem(item)}
           >
-            {item.imageUrl && viewMode === 'cards' && (
+            {item.imageUrl && (
               <div className="item-card-image" style={{ backgroundImage: `url(${item.imageUrl})` }}>
                 {item.source.type === 'youtube' && <span className="play-overlay">▶</span>}
               </div>
@@ -77,7 +77,7 @@ export function ItemList({ items, viewMode, onOpenItem, onToggleStar, onLoadMore
   }
 
   return (
-    <div className="item-list">
+    <div className={`item-list ${viewMode === 'three-pane' ? 'three-pane-list' : ''}`}>
       {items.map((item) => (
         <div
           key={item.id}
@@ -93,11 +93,28 @@ export function ItemList({ items, viewMode, onOpenItem, onToggleStar, onLoadMore
           >
             ★
           </button>
+          {item.imageUrl && (
+            <div className="item-row-image" style={{ backgroundImage: `url(${item.imageUrl})` }}>
+              {item.source.type === 'youtube' && <span className="play-overlay small">▶</span>}
+            </div>
+          )}
           <div className="item-row-body">
             <span className="item-row-title">{item.title}</span>
             <ItemMeta item={item} />
             {viewMode === 'summary' && item.summary && <p className="item-row-summary">{item.summary}</p>}
           </div>
+          {item.link && (
+            <a
+              className="external-link-btn"
+              href={item.link}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              title="Abrir original em nova aba"
+            >
+              ↗
+            </a>
+          )}
         </div>
       ))}
       {hasMore && (
