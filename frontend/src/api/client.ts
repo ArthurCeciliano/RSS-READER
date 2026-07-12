@@ -39,6 +39,16 @@ export const api = {
 
   createFolder: (name: string) => request('/api/folders', { method: 'POST', body: JSON.stringify({ name }) }),
 
+  updateFolder: (id: string, patch: { name?: string; sortOrder?: number }) =>
+    request(`/api/folders/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+
+  deleteFolder: (id: string) => request(`/api/folders/${id}`, { method: 'DELETE' }),
+
+  updateSource: (id: string, patch: { title?: string; folderId?: string | null }) =>
+    request(`/api/sources/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+
+  deleteSource: (id: string) => request(`/api/sources/${id}`, { method: 'DELETE' }),
+
   getItems: (params: {
     folderId?: string;
     sourceId?: string;

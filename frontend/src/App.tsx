@@ -136,6 +136,7 @@ export default function App() {
         onOpenRules={() => setPage('rules')}
         onOpenTags={() => setPage('tags')}
         onOpenStats={() => setPage('stats')}
+        onFoldersChanged={loadFolders}
       />
 
       <div className="app-main">
