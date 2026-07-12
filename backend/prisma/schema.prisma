@@ -99,6 +99,11 @@ model Item {
 
   tags      TagsOnItems[]
 
+  /// Set by a matching Rule's notify_desktop/play_sound action at ingest time;
+  /// cleared once the frontend polling loop has shown/played it (module 3).
+  pendingDesktopNotify Boolean @default(false)
+  pendingSound         Boolean @default(false)
+
   createdAt DateTime @default(now())
 
   /// Generated column (title+summary), GIN-indexed -- see migration 000000000001_search.

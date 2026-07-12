@@ -48,9 +48,37 @@ export type SortOrder = 'newest' | 'oldest';
 export type ItemFilter = 'all' | 'unread' | 'starred';
 
 export interface SelectedScope {
-  kind: 'all' | 'starred' | 'folder' | 'source';
+  kind: 'all' | 'starred' | 'folder' | 'source' | 'tag';
   id?: string;
   label: string;
+}
+
+export type RuleField = 'source' | 'folder' | 'title' | 'content';
+export type RuleActionType = 'mark_read' | 'star' | 'apply_tag' | 'notify_desktop' | 'play_sound';
+
+export interface RuleCondition {
+  field: RuleField;
+  value: string;
+}
+
+export interface RuleActionSpec {
+  type: RuleActionType;
+  tagName?: string;
+}
+
+export interface Rule {
+  id: string;
+  name: string;
+  enabled: boolean;
+  conditions: RuleCondition[];
+  actions: RuleActionSpec[];
+  sortOrder: number;
+}
+
+export interface Tag {
+  id: string;
+  name: string;
+  itemCount: number;
 }
 
 export interface ResolvedSourcePayload {

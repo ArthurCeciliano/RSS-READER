@@ -8,9 +8,10 @@ import { AddSourceDialog } from './components/AddSourceDialog';
 import { SettingsPage } from './components/SettingsPage';
 import { HealthPage } from './components/HealthPage';
 import { StatsPage } from './components/StatsPage';
-import { Placeholder } from './components/Placeholder';
+import { RulesPage } from './components/RulesPage';
+import { TagsPage } from './components/TagsPage';
 import { api } from './api/client';
-import type { FeedItem, FolderNode, ItemFilter, SelectedScope, SortOrder, ViewMode } from './types';
+import type { FeedItem, FolderNode, ItemFilter, SelectedScope, SortOrder, Tag, ViewMode } from './types';
 
 type PageView = 'reader-shell' | 'settings' | 'health' | 'rules' | 'tags' | 'stats';
 
@@ -41,6 +42,7 @@ export default function App() {
         .getItems({
           folderId: scope.kind === 'folder' ? scope.id : undefined,
           sourceId: scope.kind === 'source' ? scope.id : undefined,
+          tagId: scope.kind === 'tag' ? scope.id : undefined,
           filter: effectiveFilter,
           sort,
           maxAgeDays: maxAgeDays ?? undefined,
@@ -128,6 +130,10 @@ export default function App() {
     setPage('reader-shell');
   }
 
+  function handleSelectTag(tag: Tag) {
+    handleSelectScope({ kind: 'tag', id: tag.id, label: `#${tag.name}` });
+  }
+
   const scopeTitle =
     page === 'settings'
       ? 'Configurações'
@@ -193,10 +199,8 @@ export default function App() {
 
         {page === 'settings' && <SettingsPage />}
         {page === 'health' && <HealthPage folders={folders} onSourcesChanged={loadFolders} />}
-        {page === 'rules' && (
-          <Placeholder title="Regras" description="Motor de regras SE/ENTÃO chega na Fase 2." />
-        )}
-        {page === 'tags' && <Placeholder title="Tags" description="Gestão de tags chega na Fase 2." />}
+        {page === 'rules' && <RulesPage />}
+        {page === 'tags' && <TagsPage onSelectTag={handleSelectTag} />}
         {page === 'stats' && <StatsPage />}
       </div>
 

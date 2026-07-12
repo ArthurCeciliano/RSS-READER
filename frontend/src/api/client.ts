@@ -4,8 +4,12 @@ import type {
   ItemFilter,
   ResolvedSourcePayload,
   ResolveSourceResponse,
+  Rule,
+  RuleActionSpec,
+  RuleCondition,
   SortOrder,
   SourceHealth,
+  Tag,
 } from '../types';
 
 // In dev (separate Vite server) default to the local backend port; in a production
@@ -54,6 +58,7 @@ export const api = {
   getItems: (params: {
     folderId?: string;
     sourceId?: string;
+    tagId?: string;
     filter?: ItemFilter;
     sort?: SortOrder;
     maxAgeDays?: number;
@@ -62,6 +67,7 @@ export const api = {
     const search = new URLSearchParams();
     if (params.folderId) search.set('folderId', params.folderId);
     if (params.sourceId) search.set('sourceId', params.sourceId);
+    if (params.tagId) search.set('tagId', params.tagId);
     if (params.filter) search.set('filter', params.filter);
     if (params.sort) search.set('sort', params.sort);
     if (params.maxAgeDays) search.set('maxAgeDays', String(params.maxAgeDays));
@@ -125,4 +131,20 @@ export const api = {
       sourceCount: number;
       folderCount: number;
     }>(`/api/stats?days=${days}`),
+
+  getRules: () => request<{ rules: Rule[] }>('/api/rules'),
+
+  createRule: (rule: { name: string; enabled?: boolean; conditions: RuleCondition[]; actions: RuleActionSpec[] }) =>
+    request('/api/rules', { method: 'POST', body: JSON.stringify(rule) }),
+
+  updateRule: (
+    id: string,
+    patch: Partial<{ name: string; enabled: boolean; conditions: RuleCondition[]; actions: RuleActionSpec[] }>,
+  ) => request(`/api/rules/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+
+  deleteRule: (id: string) => request(`/api/rules/${id}`, { method: 'DELETE' }),
+
+  getTags: () => request<{ tags: Tag[] }>('/api/tags'),
+
+  deleteTag: (id: string) => request(`/api/tags/${id}`, { method: 'DELETE' }),
 };

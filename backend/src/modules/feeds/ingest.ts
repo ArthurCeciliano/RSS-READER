@@ -6,6 +6,8 @@ import { computeDedupeHash } from './dedupe.js';
 import { computeAdaptiveIntervalMinutes, computeNextFetchAt, applyJitter } from '../queue/scheduler.js';
 import { withDomainLock, DomainBusyError } from '../queue/domainLock.js';
 import { buildBridgeCandidateUrls } from '../sources/bridgeResolver.js';
+import { collectActionsForContext, type RuleContext } from '../rules/ruleEngine.js';
+import { applyActionsToItem } from '../rules/applyRules.js';
 import { env } from '../../config/env.js';
 
 export interface IngestDeps {
@@ -166,6 +168,14 @@ export async function ingestSource(source: Source, deps: IngestDeps): Promise<In
 
 async function persistItems(prisma: PrismaClient, source: Source, items: ParsedFeedItem[]): Promise<number> {
   let created = 0;
+  // Fetched once per source, not per item: rules (module 3's SE/ENTAO engine) only
+  // fire for genuinely new items, never re-applied to items refreshed on re-fetch,
+  // so a manual "unstar" or "mark unread" isn't silently undone next cycle.
+  const rules = await prisma.rule.findMany({ where: { enabled: true } });
+  const folder = source.folderId
+    ? await prisma.folder.findUnique({ where: { id: source.folderId }, select: { name: true } })
+    : null;
+
   for (const item of items) {
     const dedupeHash = computeDedupeHash({ guid: item.guid, link: item.link, title: item.title, publishedAt: item.publishedAt });
     const existing = await prisma.item.findUnique({
@@ -187,8 +197,19 @@ async function persistItems(prisma: PrismaClient, source: Source, items: ParsedF
       await prisma.item.update({ where: { id: existing.id }, data: fields });
       continue;
     }
-    await prisma.item.create({ data: { sourceId: source.id, guid: item.guid, dedupeHash, ...fields } });
+    const createdItem = await prisma.item.create({ data: { sourceId: source.id, guid: item.guid, dedupeHash, ...fields } });
     created += 1;
+
+    if (rules.length > 0) {
+      const ctx: RuleContext = {
+        sourceTitle: source.title,
+        folderName: folder?.name ?? null,
+        title: item.title,
+        content: `${item.summary ?? ''} ${item.contentHtml ?? ''}`,
+      };
+      const actions = collectActionsForContext(rules, ctx);
+      await applyActionsToItem(prisma, createdItem.id, actions);
+    }
   }
   return created;
 }

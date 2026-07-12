@@ -5,6 +5,7 @@ import type { Prisma } from '@prisma/client';
 interface ListQuery {
   folderId?: string;
   sourceId?: string;
+  tagId?: string;
   filter?: 'all' | 'unread' | 'starred';
   sort?: 'newest' | 'oldest';
   maxAgeDays?: string;
@@ -14,12 +15,13 @@ interface ListQuery {
 
 export async function itemsRoutes(app: FastifyInstance) {
   app.get<{ Querystring: ListQuery }>('/api/items', async (req) => {
-    const { folderId, sourceId, filter = 'all', sort = 'newest', maxAgeDays, cursor, limit } = req.query;
+    const { folderId, sourceId, tagId, filter = 'all', sort = 'newest', maxAgeDays, cursor, limit } = req.query;
     const take = Math.min(100, Number.parseInt(limit ?? '30', 10) || 30);
 
     const where: Prisma.ItemWhereInput = {};
     if (sourceId) where.sourceId = sourceId;
     if (folderId) where.source = { folderId };
+    if (tagId) where.tags = { some: { tagId } };
     if (filter === 'unread') where.isRead = false;
     if (filter === 'starred') where.isStarred = true;
     if (maxAgeDays) {
