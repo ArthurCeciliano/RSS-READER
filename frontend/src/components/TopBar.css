@@ -1,0 +1,84 @@
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-panel);
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.top-bar-title {
+  font-weight: 600;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.top-bar-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.top-bar-controls select {
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 5px;
+  padding: 5px 8px;
+  font-size: 12px;
+}
+
+.view-mode-switch {
+  display: flex;
+  border: 1px solid var(--border-subtle);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.view-mode-switch button {
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border: none;
+  padding: 5px 9px;
+  font-size: 13px;
+  border-right: 1px solid var(--border-subtle);
+}
+
+.view-mode-switch button:last-child {
+  border-right: none;
+}
+
+.view-mode-switch button.active {
+  background: var(--bg-active);
+  color: var(--text-primary);
+}
+
+.icon-btn {
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 5px;
+  width: 28px;
+  height: 28px;
+  font-size: 14px;
+}
+
+.icon-btn:hover {
+  color: var(--text-primary);
+}
+
+.icon-btn.spinning {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -1,0 +1,118 @@
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 60;
+  padding: 20px;
+}
+
+.dialog {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 22px;
+  width: min(480px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.dialog h2 {
+  margin: 0 0 6px;
+  font-size: 17px;
+  color: var(--text-primary);
+}
+
+.dialog-hint {
+  color: var(--text-tertiary);
+  font-size: 12.5px;
+  margin: 0 0 14px;
+}
+
+.dialog-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.dialog-row label {
+  color: var(--text-secondary);
+  font-size: 13px;
+  min-width: 60px;
+}
+
+.dialog-row input,
+.dialog-row select {
+  flex: 1;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  border-radius: 5px;
+  padding: 7px 9px;
+  font-size: 13px;
+}
+
+.dialog-row button {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 7px 12px;
+  font-size: 13px;
+}
+
+.dialog-error {
+  color: var(--danger);
+  font-size: 13px;
+}
+
+.dialog-resolved,
+.dialog-choice {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 12px;
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+.choice-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  border-radius: 5px;
+  padding: 7px 9px;
+  margin-top: 6px;
+  font-size: 12.5px;
+}
+
+.dialog button.primary {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 7px 14px;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.dialog-actions button {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  border-radius: 5px;
+  padding: 7px 14px;
+  font-size: 13px;
+}

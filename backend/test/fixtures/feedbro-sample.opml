@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="1.0">
+<head>
+<title>Feed Subscriptions</title>
+</head>
+<body>
+  <outline title="BR NEWS" text="BR NEWS">
+      <outline text="Brasil de Fato" title="Brasil de Fato" type="rss"
+            xmlUrl="https://www.brasildefato.com.br/rss2.xml"/>
+      <outline text="g1 &#62; Pop &#38; Arte" title="g1 &#62; Pop &#38; Arte" type="rss"
+            xmlUrl="https://g1.globo.com/rss/g1/pop-arte/" htmlUrl="https://g1.globo.com/pop-arte/"/>
+      <outline text="g1 &#62; Tecnologia" title="g1 &#62; Tecnologia" type="rss"
+            xmlUrl="https://g1.globo.com/rss/g1/tecnologia/" htmlUrl="https://g1.globo.com/tecnologia/"/>
+      <outline text="UOL Noticias" title="UOL Noticias" type="rss"
+            xmlUrl="http://rss.noticias.uol.com.br/ultnot/index.xml" htmlUrl="http://noticias.uol.com.br/"/>
+      <outline text="UOL Tecnologia" title="UOL Tecnologia" type="rss"
+            xmlUrl="http://rss.uol.com.br/feed/tecnologia.xml" htmlUrl="http://tecnologia.uol.com.br/"/>
+      <outline text="g1 &#62; Mundo" title="g1 &#62; Mundo" type="rss"
+            xmlUrl="http://g1.globo.com/dynamo/mundo/rss2.xml" htmlUrl="https://g1.globo.com/mundo/"/>
+      <outline text="ICL NotÃ­cias" title="ICL NotÃ­cias" type="rss"
+            xmlUrl="https://iclnoticias.com.br//feed" htmlUrl="https://iclnoticias.com.br"/>
+  </outline>
+  <outline title="YT- NEWS" text="YT- NEWS">
+      <outline text="GalÃ£s Feios" title="RSS" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UC2bZgihqibFD_vhaYEXQZFg" htmlUrl="https://www.youtube.com/channel/UC2bZgihqibFD_vhaYEXQZFg"/>
+      <outline text="@InstitutoConhecimentoLiberta" title="@InstitutoConhecimentoLiberta" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCaIqJHHo9TJiLINzOFJRl2Q" htmlUrl="https://www.youtube.com/channel/UCaIqJHHo9TJiLINzOFJRl2Q"/>
+      <outline text="Professor Ricardo MarcÃ­lio" title="Professor Ricardo MarcÃ­lio" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCT6Imb3GXhF8GmjpIk6y2lg" htmlUrl="https://www.youtube.com/channel/UCT6Imb3GXhF8GmjpIk6y2lg"/>
+      <outline text="Filipe Boni" title="RSS" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCw8gC06oOjUtA553wNXO5jw" htmlUrl="https://www.youtube.com/channel/UCw8gC06oOjUtA553wNXO5jw"/>
+      <outline text="KOBORI" title="RSS" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCOKSOW5uJHdW7Edz37mvAFw" htmlUrl="https://www.youtube.com/channel/UCOKSOW5uJHdW7Edz37mvAFw"/>
+  </outline>
+  <outline title="IG - MUSIC ARTISTS" text="IG - MUSIC ARTISTS">
+      <outline text="KENYA20HZ (@kenya20hz) | Instagram" title="KENYA20HZ (@kenya20hz) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/kenya20hz/" htmlUrl="https://www.instagram.com/kenya20hz"/>
+      <outline text="SPFDJ (@spfd.j) | Instagram" title="SPFDJ (@spfd.j) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/spfd.j/" htmlUrl="https://www.instagram.com/spfd.j"/>
+      <outline text="deadmau5 (@deadmau5) | Instagram" title="deadmau5 (@deadmau5) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/deadmau5/" htmlUrl="https://www.instagram.com/deadmau5"/>
+  </outline>
+  <outline title="TIKTOK POP NEWS" text="TIKTOK POP NEWS">
+      <outline text="popline   (@popline) - TikTok" title="popline   (@popline) - TikTok" type="rss"
+            xmlUrl="https://rssbridge.joshwho.net/?action=display&amp;bridge=TikTokBridge&amp;context=By+user&amp;username=%40popline&amp;format=Atom"/>
+  </outline>
+  <outline title="TIKTOK ARTISTS" text="TIKTOK ARTISTS">
+  </outline>
+  <outline title="REEDIT" text="REEDIT">
+      <outline text="Witch House" title="Witch House" type="rss"
+            xmlUrl="https://www.reddit.com/r/witch_house/.rss" htmlUrl="https://www.reddit.com/r/witch_house/"/>
+  </outline>
+</body>
+</opml>

@@ -1,0 +1,151 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SourceType {
+  rss
+  atom
+  json_feed
+  youtube
+  instagram
+  tiktok
+  reddit
+  twitter
+}
+
+enum SourceStatus {
+  ok
+  degraded
+  failing
+}
+
+model Folder {
+  id        String   @id @default(uuid())
+  name      String
+  parentId  String?
+  parent    Folder?  @relation("FolderChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children  Folder[] @relation("FolderChildren")
+  sortOrder Int      @default(0)
+  sources   Source[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([parentId])
+}
+
+model Source {
+  id        String     @id @default(uuid())
+  folderId  String?
+  folder    Folder?    @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  sortOrder Int        @default(0)
+
+  title     String
+  // The stable, user-facing identity of the source (profile/channel/feed URL).
+  // For bridge-backed sources (instagram/tiktok) this is the ORIGINAL profile
+  // URL, never the bridge URL, per module 1 spec.
+  identityUrl String   @unique
+  // The actual URL fetched to obtain feed data. For rss/atom/youtube/reddit
+  // this equals identityUrl (or the resolved feed URL). For bridge-backed
+  // sources this is filled in at fetch-time from the configured bridge list,
+  // so it is nullable and not persisted as the identity.
+  feedUrl     String?
+  siteUrl     String?
+  faviconUrl  String?
+  type        SourceType
+
+  scanIntervalMinutes Int      @default(30)
+  maxEntries          Int      @default(20)
+  inactiveLimitDays   Int      @default(180)
+
+  etag            String?
+  lastModified    String?
+  lastFetchedAt   DateTime?
+  lastSuccessAt   DateTime?
+  nextFetchAt     DateTime?
+  consecutiveFails Int     @default(0)
+  status          SourceStatus @default(ok)
+  lastError       String?
+
+  items     Item[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([folderId])
+  @@index([nextFetchAt])
+}
+
+model Item {
+  id        String   @id @default(uuid())
+  sourceId  String
+  source    Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  guid          String?
+  link          String?
+  dedupeHash    String
+  title         String
+  summary       String?
+  contentHtml   String?
+  imageUrl      String?
+  author        String?
+  publishedAt   DateTime?
+
+  isRead    Boolean  @default(false)
+  isStarred Boolean  @default(false)
+
+  tags      TagsOnItems[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([sourceId, dedupeHash])
+  @@index([sourceId, publishedAt])
+  @@index([isRead])
+  @@index([isStarred])
+}
+
+model Tag {
+  id        String        @id @default(uuid())
+  name      String        @unique
+  items     TagsOnItems[]
+  createdAt DateTime      @default(now())
+}
+
+model TagsOnItems {
+  itemId String
+  item   Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  tagId  String
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([itemId, tagId])
+}
+
+enum RuleAction {
+  mark_read
+  star
+  apply_tag
+  notify_desktop
+  play_sound
+}
+
+model Rule {
+  id        String   @id @default(uuid())
+  name      String
+  enabled   Boolean  @default(true)
+  // condition/action are stored as JSON blobs describing the SE/ENTAO tree
+  // (source/folder/title/content contains X) -> (action list). Kept schemaless
+  // because the rule grammar is still evolving in phase 2.
+  conditions Json
+  actions    Json
+  sortOrder  Int     @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Setting {
+  key   String @id
+  value Json
+}

@@ -1,0 +1,648 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="1.0">
+<head>
+<title>Feed Subscriptions</title>
+</head>
+<body>
+  <outline title="BR NEWS" text="BR NEWS">
+      <outline text="Brasil de Fato" title="Brasil de Fato" type="rss"
+            xmlUrl="https://www.brasildefato.com.br/rss2.xml"/>
+      <outline text="g1 &#62; Pop &#38; Arte" title="g1 &#62; Pop &#38; Arte" type="rss"
+            xmlUrl="https://g1.globo.com/rss/g1/pop-arte/" htmlUrl="https://g1.globo.com/pop-arte/"/>
+      <outline text="g1 &#62; Tecnologia" title="g1 &#62; Tecnologia" type="rss"
+            xmlUrl="https://g1.globo.com/rss/g1/tecnologia/" htmlUrl="https://g1.globo.com/tecnologia/"/>
+      <outline text="UOL Noticias" title="UOL Noticias" type="rss"
+            xmlUrl="http://rss.noticias.uol.com.br/ultnot/index.xml" htmlUrl="http://noticias.uol.com.br/"/>
+      <outline text="UOL Tecnologia" title="UOL Tecnologia" type="rss"
+            xmlUrl="http://rss.uol.com.br/feed/tecnologia.xml" htmlUrl="http://tecnologia.uol.com.br/"/>
+      <outline text="g1 &#62; Mundo" title="g1 &#62; Mundo" type="rss"
+            xmlUrl="http://g1.globo.com/dynamo/mundo/rss2.xml" htmlUrl="https://g1.globo.com/mundo/"/>
+      <outline text="ICL NotÃ­cias" title="ICL NotÃ­cias" type="rss"
+            xmlUrl="https://iclnoticias.com.br//feed" htmlUrl="https://iclnoticias.com.br"/>
+  </outline>
+  <outline title="YT- NEWS" text="YT- NEWS">
+      <outline text="GalÃ£s Feios" title="RSS" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UC2bZgihqibFD_vhaYEXQZFg" htmlUrl="https://www.youtube.com/channel/UC2bZgihqibFD_vhaYEXQZFg"/>
+      <outline text="@InstitutoConhecimentoLiberta" title="@InstitutoConhecimentoLiberta" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCaIqJHHo9TJiLINzOFJRl2Q" htmlUrl="https://www.youtube.com/channel/UCaIqJHHo9TJiLINzOFJRl2Q"/>
+      <outline text="Professor Ricardo MarcÃ­lio" title="Professor Ricardo MarcÃ­lio" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCT6Imb3GXhF8GmjpIk6y2lg" htmlUrl="https://www.youtube.com/channel/UCT6Imb3GXhF8GmjpIk6y2lg"/>
+      <outline text="Filipe Boni" title="RSS" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCw8gC06oOjUtA553wNXO5jw" htmlUrl="https://www.youtube.com/channel/UCw8gC06oOjUtA553wNXO5jw"/>
+      <outline text="KOBORI" title="RSS" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCOKSOW5uJHdW7Edz37mvAFw" htmlUrl="https://www.youtube.com/channel/UCOKSOW5uJHdW7Edz37mvAFw"/>
+  </outline>
+  <outline title="IG - MUSIC ARTISTS" text="IG - MUSIC ARTISTS">
+      <outline text="KENYA20HZ (@kenya20hz) | Instagram" title="KENYA20HZ (@kenya20hz) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/kenya20hz/" htmlUrl="https://www.instagram.com/kenya20hz"/>
+      <outline text="SPFDJ (@spfd.j) | Instagram" title="SPFDJ (@spfd.j) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/spfd.j/" htmlUrl="https://www.instagram.com/spfd.j"/>
+      <outline text="Raffaello Donnaloia AKA MÃTARAPH (@metaraph_) | Instagram" title="Raffaello Donnaloia AKA MÃTARAPH (@metaraph_) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/metaraph_/" htmlUrl="https://www.instagram.com/metaraph_"/>
+      <outline text="SALOME GVETADZE (@salome6_6) | Instagram" title="SALOME GVETADZE (@salome6_6) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/salome6_6/" htmlUrl="https://www.instagram.com/salome6_6"/>
+      <outline text="âï¸ðð¯ð¦ðªð¢ð°à¿ (@grimes) | Instagram" title="âï¸ðð¯ð¦ðªð¢ð°à¿ (@grimes) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/grimes/" htmlUrl="https://www.instagram.com/grimes"/>
+      <outline text="Pablo Bozzi (@pablo.bozzi) | Instagram" title="Pablo Bozzi (@pablo.bozzi) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/pablo.bozzi/" htmlUrl="https://www.instagram.com/pablo.bozzi"/>
+      <outline text="deadmau5 (@deadmau5) | Instagram" title="deadmau5 (@deadmau5) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/deadmau5/" htmlUrl="https://www.instagram.com/deadmau5"/>
+      <outline text="The Band Ghost (@thebandghost) | Instagram" title="The Band Ghost (@thebandghost) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/thebandghost/" htmlUrl="https://www.instagram.com/thebandghost"/>
+      <outline text="Sidewalks and Skeletons (@sidewalksandskeletons) | Instagram" title="Sidewalks and Skeletons (@sidewalksandskeletons) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/sidewalksandskeletons/" htmlUrl="https://www.instagram.com/sidewalksandskeletons"/>
+      <outline text="Lebanon Hanover" title="Lebanon Hanover" type="rss"
+            xmlUrl="https://www.instagram.com/lebanonhanover/" htmlUrl="https://www.instagram.com/lebanonhanover"/>
+      <outline text="She Past Away" title="She Past Away" type="rss"
+            xmlUrl="https://www.instagram.com/shepastaway_official/" htmlUrl="https://www.instagram.com/shepastaway_official"/>
+      <outline text="RAMMSTEIN" title="RAMMSTEIN" type="rss"
+            xmlUrl="https://www.instagram.com/rammsteinofficial/" htmlUrl="https://www.instagram.com/rammsteinofficial"/>
+      <outline text="The Birthday Massacre" title="The Birthday Massacre" type="rss"
+            xmlUrl="https://www.instagram.com/thebirthdaymassacre/" htmlUrl="https://www.instagram.com/thebirthdaymassacre"/>
+      <outline text="Twin Tribes" title="Twin Tribes" type="rss"
+            xmlUrl="https://www.instagram.com/twin_tribes/" htmlUrl="https://www.instagram.com/twin_tribes"/>
+      <outline text="Bragolin" title="Bragolin" type="rss"
+            xmlUrl="https://www.instagram.com/bragolin/" htmlUrl="https://www.instagram.com/bragolin"/>
+      <outline text="MARSHMELLO" title="MARSHMELLO" type="rss"
+            xmlUrl="https://www.instagram.com/marshmello/" htmlUrl="https://www.instagram.com/marshmello"/>
+      <outline text="Ultra Sunn" title="Ultra Sunn" type="rss"
+            xmlUrl="https://www.instagram.com/ultrasunn/" htmlUrl="https://www.instagram.com/ultrasunn"/>
+      <outline text="SÃ¸lv" title="SÃ¸lv" type="rss"
+            xmlUrl="https://www.instagram.com/solvofficial/" htmlUrl="https://www.instagram.com/solvofficial"/>
+      <outline text="Alissa White-Gluz (@alissawhitegluz) | Instagram" title="Alissa White-Gluz (@alissawhitegluz) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/alissawhitegluz/" htmlUrl="https://www.instagram.com/alissawhitegluz"/>
+      <outline text="TEMPERS (@tempersmusic) | Instagram" title="TEMPERS (@tempersmusic) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/tempersmusic/" htmlUrl="https://www.instagram.com/tempersmusic"/>
+      <outline text="Cradle of Filth (@cradleoffilth) | Instagram" title="Cradle of Filth (@cradleoffilth) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/cradleoffilth/" htmlUrl="https://www.instagram.com/cradleoffilth"/>
+  </outline>
+  <outline title="IG- MUSIC NEWS" text="IG- MUSIC NEWS">
+      <outline text="billboard (@billboard) | Instagram" title="billboard (@billboard) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/billboard/" htmlUrl="https://www.instagram.com/billboard"/>
+      <outline text="POPline ð§ (@portalpopline) | Instagram" title="POPline ð§ (@portalpopline) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/portalpopline/" htmlUrl="https://www.instagram.com/portalpopline"/>
+      <outline text="Spotify (@spotify) | Instagram" title="Spotify (@spotify) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/spotify/" htmlUrl="https://www.instagram.com/spotify"/>
+      <outline text=" (@) | SPOTIFY" title=" (@) | SPOTIFY" type="rss"
+            xmlUrl="https://www.instagram.com/Spotify/" htmlUrl="https://www.instagram.com/Spotify"/>
+      <outline text=" (@) | APPLE MUSIC" title=" (@) | APPLE MUSIC" type="rss"
+            xmlUrl="https://www.instagram.com/applemusic/" htmlUrl="https://www.instagram.com/applemusic"/>
+  </outline>
+  <outline title="IG - MUSIC LABELS" text="IG - MUSIC LABELS">
+      <outline text=" ROCNATION" title=" ROCNATION" type="rss"
+            xmlUrl="https://www.instagram.com/rocnation/" htmlUrl="https://www.instagram.com/rocnation"/>
+      <outline text=" ATLANTIC RECORDS" title=" ATLANTIC RECORDS" type="rss"
+            xmlUrl="https://www.instagram.com/atlanticrecords/" htmlUrl="https://www.instagram.com/atlanticrecords"/>
+      <outline text=" REPUBLIC RECORDS" title=" REPUBLIC RECORDS" type="rss"
+            xmlUrl="https://www.instagram.com/republicrecords/" htmlUrl="https://www.instagram.com/republicrecords"/>
+      <outline text=" RCA" title=" RCA" type="rss"
+            xmlUrl="https://www.instagram.com/rcarecords/" htmlUrl="https://www.instagram.com/rcarecords"/>
+      <outline text=" OVO" title=" OVO" type="rss"
+            xmlUrl="https://www.instagram.com/ovosound/" htmlUrl="https://www.instagram.com/ovosound"/>
+      <outline text=" FABRIKA RECORDS" title=" FABRIKA RECORDS" type="rss"
+            xmlUrl="https://www.instagram.com/fabrikarecords/" htmlUrl="https://www.instagram.com/fabrikarecords"/>
+      <outline text=" MANIC DEPRESSION " title=" MANIC DEPRESSION " type="rss"
+            xmlUrl="https://www.instagram.com/manicdepressionrds/" htmlUrl="https://www.instagram.com/manicdepressionrds"/>
+      <outline text=" MAU5TRAP" title=" MAU5TRAP" type="rss"
+            xmlUrl="https://www.instagram.com/mau5trap/" htmlUrl="https://www.instagram.com/mau5trap"/>
+      <outline text=" ROADRUNNER" title=" ROADRUNNER" type="rss"
+            xmlUrl="https://www.instagram.com/roadrunnerrecords/" htmlUrl="https://www.instagram.com/roadrunnerrecords"/>
+      <outline text=" NUCLEAR BLAST" title=" NUCLEAR BLAST" type="rss"
+            xmlUrl="https://www.instagram.com/nuclearblastrecords/" htmlUrl="https://www.instagram.com/nuclearblastrecords"/>
+      <outline text=" NAPALM RECORDS" title=" NAPALM RECORDS" type="rss"
+            xmlUrl="https://www.instagram.com/napalmrecordsofficial/" htmlUrl="https://www.instagram.com/napalmrecordsofficial"/>
+      <outline text="Wave Record Music" title="Wave Record Music" type="rss"
+            xmlUrl="https://www.instagram.com/waverecordsmusic/" htmlUrl="https://www.instagram.com/waverecordsmusic"/>
+      <outline text="Artiffact Records" title="Artiffact Records" type="rss"
+            xmlUrl="https://www.instagram.com/artoffact_records/" htmlUrl="https://www.instagram.com/artoffact_records"/>
+      <outline text="  CzeluÅÄ" title="  CzeluÅÄ" type="rss"
+            xmlUrl="https://www.instagram.com/czelusc/" htmlUrl="https://www.instagram.com/czelusc"/>
+      <outline text="UNTITLED BURIAL" title="UNTITLED BURIAL" type="rss"
+            xmlUrl="https://www.instagram.com/untitledburialofficial/?hl=pt-br" htmlUrl="https://www.instagram.com/untitledburialofficial"/>
+  </outline>
+  <outline title="IG - CULTURE" text="IG - CULTURE">
+      <outline text="Gothic &#38; Witchy Vibes (@childrenofthenight9) | Instagram" title="Gothic &#38; Witchy Vibes (@childrenofthenight9) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/childrenofthenight9/" htmlUrl="https://www.instagram.com/childrenofthenight9"/>
+      <outline text="Black Friday (@itsblackfriday) | Instagram" title="Black Friday (@itsblackfriday) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/itsblackfriday/" htmlUrl="https://www.instagram.com/itsblackfriday"/>
+      <outline text="Cherry Velour (@misscherryvelour) | Instagram" title="Cherry Velour (@misscherryvelour) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/misscherryvelour/" htmlUrl="https://www.instagram.com/misscherryvelour"/>
+  </outline>
+  <outline title="IG - CENA" text="IG - CENA">
+      <outline text="CARLOS CAPSLOCK (@carloscapslock) | Instagram" title="CARLOS CAPSLOCK (@carloscapslock) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/carloscapslock/" htmlUrl="https://www.instagram.com/carloscapslock"/>
+      <outline text="Gegen Berlin (@gegenberlin) | Instagram" title="Gegen Berlin (@gegenberlin) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/gegenberlin/" htmlUrl="https://www.instagram.com/gegenberlin"/>
+      <outline text="ð¦ð¼ðð»ð± ðð²ð½ð®ð¿ððºð²ð»ð (@sound_department) | Instagram" title="ð¦ð¼ðð»ð± ðð²ð½ð®ð¿ððºð²ð»ð (@sound_department) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/sound_department/" htmlUrl="https://www.instagram.com/sound_department"/>
+      <outline text="IÎ·Î´ÏsÏrÎ¹Î±l GÎ¹rls (@industrialgirlsmusic) | Instagram" title="IÎ·Î´ÏsÏrÎ¹Î±l GÎ¹rls (@industrialgirlsmusic) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/industrialgirlsmusic/" htmlUrl="https://www.instagram.com/industrialgirlsmusic"/>
+      <outline text="Teletech (@teletechuk) | Instagram" title="Teletech (@teletechuk) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/teletechuk/" htmlUrl="https://www.instagram.com/teletechuk"/>
+      <outline text="Madame Club" title="Madame Club" type="rss"
+            xmlUrl="https://www.instagram.com/madameclub/" htmlUrl="https://www.instagram.com/madameclub"/>
+      <outline text="Post Punk Brasil (@postpunkbrasil) | Instagram" title="Post Punk Brasil (@postpunkbrasil) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/postpunkbrasil/" htmlUrl="https://www.instagram.com/postpunkbrasil"/>
+      <outline text="MusicMan Jazz (@musicmanjazz) | Instagram" title="MusicMan Jazz (@musicmanjazz) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/musicmanjazz/" htmlUrl="https://www.instagram.com/musicmanjazz"/>
+  </outline>
+  <outline title="IG  - LITERATURA" text="IG  - LITERATURA">
+      <outline text="DarkSideÂ® Books (@darksidebooks) | Instagram" title="DarkSideÂ® Books (@darksidebooks) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/darksidebooks/" htmlUrl="https://www.instagram.com/darksidebooks"/>
+      <outline text=" bel.quintilio" title=" bel.quintilio" type="rss"
+            xmlUrl="https://www.instagram.com/bel.quintilio/" htmlUrl="https://www.instagram.com/bel.quintilio"/>
+      <outline text=" thaismessora" title=" thaismessora" type="rss"
+            xmlUrl="https://www.instagram.com/thaismessora/" htmlUrl="https://www.instagram.com/thaismessora"/>
+      <outline text=" increasycl" title=" increasycl" type="rss"
+            xmlUrl="https://www.instagram.com/increasycl/" htmlUrl="https://www.instagram.com/increasycl"/>
+      <outline text=" cantodogargula" title=" cantodogargula" type="rss"
+            xmlUrl="https://www.instagram.com/cantodogargula/" htmlUrl="https://www.instagram.com/cantodogargula"/>
+      <outline text=" bettwinkler" title=" bettwinkler" type="rss"
+            xmlUrl="https://www.instagram.com/bettwinkler/" htmlUrl="https://www.instagram.com/bettwinkler"/>
+      <outline text=" ateceladehistorias" title=" ateceladehistorias" type="rss"
+            xmlUrl="https://www.instagram.com/ateceladehistorias/" htmlUrl="https://www.instagram.com/ateceladehistorias"/>
+      <outline text="Clube da Literatura ClÃ¡ssica" title="Clube da Literatura ClÃ¡ssica" type="rss"
+            xmlUrl="https://www.instagram.com/clubedeliteraturaclassica/?hl=pt-br" htmlUrl="https://www.instagram.com/clubedeliteraturaclassica"/>
+      <outline text="O Grifo (@ogrifoeditora) | Instagram" title="O Grifo (@ogrifoeditora) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/ogrifoeditora/" htmlUrl="https://www.instagram.com/ogrifoeditora"/>
+  </outline>
+  <outline title="IG - FASHION" text="IG - FASHION">
+      <outline text="Blackcraft Cult (@blackcraftcult) | Instagram" title="Blackcraft Cult (@blackcraftcult) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/blackcraftcult/" htmlUrl="https://www.instagram.com/blackcraftcult"/>
+      <outline text="DISTURBIA (@disturbia) | Instagram" title="DISTURBIA (@disturbia) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/disturbia/" htmlUrl="https://www.instagram.com/disturbia"/>
+      <outline text="Majesty Black (@majestyblack) | Instagram" title="Majesty Black (@majestyblack) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/majestyblack/" htmlUrl="https://www.instagram.com/majestyblack"/>
+      <outline text="Drop Dead (@dropdeadofficial) | Instagram" title="Drop Dead (@dropdeadofficial) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/dropdeadofficial/" htmlUrl="https://www.instagram.com/dropdeadofficial"/>
+      <outline text=" blackeyedalien" title=" blackeyedalien" type="rss"
+            xmlUrl="https://www.instagram.com/blackeyedalien/" htmlUrl="https://www.instagram.com/blackeyedalien"/>
+      <outline text="@misselliem2.0" title="@misselliem2.0" type="rss"
+            xmlUrl="https://www.instagram.com/misselliem2.0/" htmlUrl="https://www.instagram.com/misselliem2.0"/>
+      <outline text="@officially.gia" title="@officially.gia" type="rss"
+            xmlUrl="https://www.instagram.com/officially.gia/" htmlUrl="https://www.instagram.com/officially.gia"/>
+      <outline text="Aurora James ð¦¢ (@aurorajames) | Instagram" title="Aurora James ð¦¢ (@aurorajames) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/aurorajames/" htmlUrl="https://www.instagram.com/aurorajames"/>
+      <outline text="David Ludolf (@ludolfdavid_) | Instagram" title="David Ludolf (@ludolfdavid_) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/ludolfdavid_/" htmlUrl="https://www.instagram.com/ludolfdavid_"/>
+  </outline>
+  <outline title="IG - STORYTELLING" text="IG - STORYTELLING">
+      <outline text=" HARRY POTTER" title=" HARRY POTTER" type="rss"
+            xmlUrl="https://www.instagram.com/harrypotter/" htmlUrl="https://www.instagram.com/harrypotter"/>
+      <outline text=" BATMAN" title=" BATMAN" type="rss"
+            xmlUrl="https://www.instagram.com/batman/" htmlUrl="https://www.instagram.com/batman"/>
+      <outline text="Crunchyroll" title="Crunchyroll" type="rss"
+            xmlUrl="https://www.instagram.com/crunchyroll/" htmlUrl="https://www.instagram.com/crunchyroll"/>
+      <outline text="Pokemon" title="Pokemon" type="rss"
+            xmlUrl="https://www.instagram.com/pokemon/" htmlUrl="https://www.instagram.com/pokemon"/>
+      <outline text="jujutsu Kaisen" title="jujutsu Kaisen" type="rss"
+            xmlUrl="https://www.instagram.com/jujutsukaisen/" htmlUrl="https://www.instagram.com/jujutsukaisen"/>
+      <outline text="Fortnite" title="Fortnite" type="rss"
+            xmlUrl="https://www.instagram.com/fortnite/" htmlUrl="https://www.instagram.com/fortnite"/>
+      <outline text=" Spider Man" title=" Spider Man" type="rss"
+            xmlUrl="https://www.instagram.com/spiderman/" htmlUrl="https://www.instagram.com/spiderman"/>
+      <outline text=" Marvel Studios" title=" Marvel Studios" type="rss"
+            xmlUrl="https://www.instagram.com/marvelstudios/" htmlUrl="https://www.instagram.com/marvelstudios"/>
+      <outline text=" Chainsaw Man" title=" Chainsaw Man" type="rss"
+            xmlUrl="https://www.instagram.com/chainsaw_en/" htmlUrl="https://www.instagram.com/chainsaw_en"/>
+  </outline>
+  <outline title="TIKTOK POP NEWS" text="TIKTOK POP NEWS">
+      <outline text="popline   (@popline) - TikTok" title="popline   (@popline) - TikTok" type="rss"
+            xmlUrl="https://rssbridge.joshwho.net/?action=display&amp;bridge=TikTokBridge&amp;context=By+user&amp;username=%40popline&amp;format=Atom"/>
+  </outline>
+  <outline title="TIKTOK ARTISTS" text="TIKTOK ARTISTS">
+  </outline>
+  <outline title="TIKTOK - CULTURE" text="TIKTOK - CULTURE">
+  </outline>
+  <outline title="YT - MUSIC" text="YT - MUSIC">
+      <outline text="BOILER ROOM" title="BOILER ROOM" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCGBpxWJr9FNOcFYA5GkKrMg" htmlUrl="https://www.youtube.com/channel/UCGBpxWJr9FNOcFYA5GkKrMg"/>
+      <outline text="HOR BERLIN" title="RSS" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCmfF7JZv26UUKyRedViGIlw" htmlUrl="https://www.youtube.com/channel/UCmfF7JZv26UUKyRedViGIlw"/>
+      <outline text="Untitled Burial" title="Untitled Burial" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCy1a3geSadf4tIeWwWSnd6A" htmlUrl="https://www.youtube.com/channel/UCy1a3geSadf4tIeWwWSnd6A"/>
+      <outline text="Gothic Bop Music" title="Gothic Bop Music" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCU8m6SavSZWQ_coZO_BBApA" htmlUrl="https://www.youtube.com/channel/UCU8m6SavSZWQ_coZO_BBApA"/>
+      <outline text="NEDOSTUPNOSTÐ¬" title="NEDOSTUPNOSTÐ¬" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCxUifz1sliqsaLrN6PA2miQ" htmlUrl="https://www.youtube.com/channel/UCxUifz1sliqsaLrN6PA2miQ"/>
+      <outline text="WITCH HOUSE" title="WITCH HOUSE" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCRwcA5FCi2G8bkJ_C56Fp_Q" htmlUrl="https://www.youtube.com/channel/UCRwcA5FCi2G8bkJ_C56Fp_Q"/>
+      <outline text="WITCH HOUSE TV" title="WITCH HOUSE TV" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCEf7htbNGpM2Sv1klchp7xw" htmlUrl="https://www.youtube.com/channel/UCEf7htbNGpM2Sv1klchp7xw"/>
+      <outline text=" CzeluÅÄ" title=" CzeluÅÄ" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UC8ga0qpj4m2YPMj2gryDO6A" htmlUrl="https://www.youtube.com/channel/UC8ga0qpj4m2YPMj2gryDO6A"/>
+      <outline text="JAZZ JANE" title="RSS" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UChE2Mho7mo3nlwgOuLupnXA" htmlUrl="https://www.youtube.com/channel/UChE2Mho7mo3nlwgOuLupnXA"/>
+  </outline>
+  <outline title="YT - LITERATURA" text="YT - LITERATURA">
+      <outline text="Ler Antes de Morrer" title="Ler Antes de Morrer" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCTubbc8ei3JfOBbicSJYPfQ" htmlUrl="https://www.youtube.com/channel/UCTubbc8ei3JfOBbicSJYPfQ"/>
+      <outline text="@BookedWithJameelah" title="@BookedWithJameelah" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCPMLi0YkaXiz-X_blmd7Xsw" htmlUrl="https://www.youtube.com/channel/UCPMLi0YkaXiz-X_blmd7Xsw"/>
+      <outline text="@nherbooks" title="@nherbooks" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCfatiovNuLoBTjojCncpKvQ" htmlUrl="https://www.youtube.com/channel/UCfatiovNuLoBTjojCncpKvQ"/>
+      <outline text="@Antofagica" title="@Antofagica" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCV_Oh99yIfe7GqGN_HZ0OVQ" htmlUrl="https://www.youtube.com/channel/UCV_Oh99yIfe7GqGN_HZ0OVQ"/>
+      <outline text="AcrÃ³pole Revisitada" title="AcrÃ³pole Revisitada" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCzj20VTpLGH0RFqCkr3BxcQ" htmlUrl="https://www.youtube.com/channel/UCzj20VTpLGH0RFqCkr3BxcQ"/>
+      <outline text=" buzzeditora" title=" buzzeditora" type="rss"
+            xmlUrl="https://www.instagram.com/buzzeditora/" htmlUrl="https://www.instagram.com/buzzeditora"/>
+      <outline text="Isabela Boscov" title="Isabela Boscov" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCC1QUJZGfqrSGwwYXvZhqig" htmlUrl="https://www.youtube.com/channel/UCC1QUJZGfqrSGwwYXvZhqig"/>
+      <outline text="Flavio Ricardo Vassooler" title="Flavio Ricardo Vassooler" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCeKrngzvq40JGSPvtrp11Iw" htmlUrl="https://www.youtube.com/channel/UCeKrngzvq40JGSPvtrp11Iw"/>
+      <outline text="CafÃ© LiterÃ¡rio da PsicanalÃ­tica" title="CafÃ© LiterÃ¡rio da PsicanalÃ­tica" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?playlist_id=PLkJSvVwhjVMN8sV2FHxAEMWz3xOF2GdEU"/>
+      <outline text="LEARNING LANGUAGE ARTS" title="LEARNING LANGUAGE ARTS" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UC2NXx2lK2pxScv9JA0rMtog" htmlUrl="https://www.youtube.com/channel/UC2NXx2lK2pxScv9JA0rMtog"/>
+      <outline text="Ronaldo Fialho (@ronaldofialho.clandestino) | Instagram" title="Ronaldo Fialho (@ronaldofialho.clandestino) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/ronaldofialho.clandestino/" htmlUrl="https://www.instagram.com/ronaldofialho.clandestino"/>
+  </outline>
+  <outline title="YT - ESCRITA" text="YT - ESCRITA">
+      <outline text="@AlexaDonne" title="@AlexaDonne" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCfwTRhTSM2NyJImC8HeUd1Q" htmlUrl="https://www.youtube.com/channel/UCfwTRhTSM2NyJImC8HeUd1Q"/>
+      <outline text="@BrandSanderson" title="@BrandSanderson" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UC3g-w83Cb5pEAu5UmRrge-A" htmlUrl="https://www.youtube.com/channel/UC3g-w83Cb5pEAu5UmRrge-A"/>
+      <outline text="@viltoreis" title="@viltoreis" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCME9EJ7k7hzJKabHjkT8EhA" htmlUrl="https://www.youtube.com/channel/UCME9EJ7k7hzJKabHjkT8EhA"/>
+      <outline text="@VidariaLivros" title="@VidariaLivros" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCgvJQUdgBXOhax-RleJL7NQ" htmlUrl="https://www.youtube.com/channel/UCgvJQUdgBXOhax-RleJL7NQ"/>
+      <outline text="Robert Mckee" title="Robert Mckee" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UC7nv8q7-rUb1WTIP4fFm2EA" htmlUrl="https://www.youtube.com/channel/UC7nv8q7-rUb1WTIP4fFm2EA"/>
+      <outline text="Christy Anne Jones" title="Christy Anne Jones" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UC13w4dxfIGf_MM2qtyJ1aSA" htmlUrl="https://www.youtube.com/channel/UC13w4dxfIGf_MM2qtyJ1aSA"/>
+  </outline>
+  <outline title="YT- POLÃTICA" text="YT- POLÃTICA">
+      <outline text="oalgoritmodaimagem" title="oalgoritmodaimagem" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UC2D8M-1psiJWfxj-aTe8pQA" htmlUrl="https://www.youtube.com/channel/UC2D8M-1psiJWfxj-aTe8pQA"/>
+      <outline text="HISTÃRIA CABELUDA" title="HISTÃRIA CABELUDA" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCqbz_4hrf2D58UFBOleuFnQ" htmlUrl="https://www.youtube.com/channel/UCqbz_4hrf2D58UFBOleuFnQ"/>
+      <outline text="HISTÃRIA PÃBLICA" title="HISTÃRIA PÃBLICA" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCAMExYqcweM7PUebKfmLdFA" htmlUrl="https://www.youtube.com/channel/UCAMExYqcweM7PUebKfmLdFA"/>
+      <outline text="Tempero Drag" title="Tempero Drag" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCZdJE8KpuFm6NRafHTEIC-g" htmlUrl="https://www.youtube.com/channel/UCZdJE8KpuFm6NRafHTEIC-g"/>
+      <outline text="@andreroncaglia" title="@andreroncaglia" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCuecx9Re-uu9TnTp0brXpOg" htmlUrl="https://www.youtube.com/channel/UCuecx9Re-uu9TnTp0brXpOg"/>
+  </outline>
+  <outline title="YT - MUSIC PROD" text="YT - MUSIC PROD">
+      <outline text="Splice" title="Splice" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCb8xLPa5RP8TnCsU7E5ASKQ" htmlUrl="https://www.youtube.com/channel/UCb8xLPa5RP8TnCsU7E5ASKQ"/>
+      <outline text="Mix with the Masters" title="Mix with the Masters" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UC-y-8VGVtlP8zDnT60dDgkw" htmlUrl="https://www.youtube.com/channel/UC-y-8VGVtlP8zDnT60dDgkw"/>
+      <outline text="LISCIEL FRANCO" title="RSS" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UC-1e939Y2MgmPcaMAF1MJLQ" htmlUrl="https://www.youtube.com/channel/UC-1e939Y2MgmPcaMAF1MJLQ"/>
+  </outline>
+  <outline title="COPYWRITING" text="COPYWRITING">
+      <outline text="CARLINE ANGLED COLE" title="RSS" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCxZjFveay-TnD0zv3JbpZdA" htmlUrl="https://www.youtube.com/channel/UCxZjFveay-TnD0zv3JbpZdA"/>
+      <outline text=" DANNI FERREIRA" title=" DANNI FERREIRA" type="rss"
+            xmlUrl="https://www.instagram.com/danniferreira/" htmlUrl="https://www.instagram.com/danniferreira"/>
+      <outline text=" BETO ALTENHOFEN" title=" BETO ALTENHOFEN" type="rss"
+            xmlUrl="https://www.instagram.com/beto.altenhofen/" htmlUrl="https://www.instagram.com/beto.altenhofen"/>
+      <outline text="BETO ALTENHOFEN" title="RSS" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UClIZu2zIsCVbOgoAvHeEkUQ" htmlUrl="https://www.youtube.com/channel/UClIZu2zIsCVbOgoAvHeEkUQ"/>
+  </outline>
+  <outline title="MARKETING" text="MARKETING">
+      <outline text=" PEDRO SOBRAL" title=" PEDRO SOBRAL" type="rss"
+            xmlUrl="https://www.instagram.com/pedrosobral/" htmlUrl="https://www.instagram.com/pedrosobral"/>
+      <outline text=" BARBARA BRUNA" title=" BARBARA BRUNA" type="rss"
+            xmlUrl="https://www.instagram.com/babruna/" htmlUrl="https://www.instagram.com/babruna"/>
+      <outline text=" (@) | Hannah Franklin" title=" (@) | Hannah Franklin" type="rss"
+            xmlUrl="https://www.instagram.com/hanahfranklin/" htmlUrl="https://www.instagram.com/hanahfranklin"/>
+      <outline text="Pixeld News" title="Pixeld News" type="rss"
+            xmlUrl="https://www.instagram.com/pixeld.news/" htmlUrl="https://www.instagram.com/pixeld.news"/>
+  </outline>
+  <outline title="PUBLICIDADE" text="PUBLICIDADE">
+      <outline text=" Patricia Pereira" title=" Patricia Pereira" type="rss"
+            xmlUrl="https://www.instagram.com/paty_arte/" htmlUrl="https://www.instagram.com/paty_arte"/>
+      <outline text=" adsoftheworldnyc" title=" adsoftheworldnyc" type="rss"
+            xmlUrl="https://www.instagram.com/adsoftheworldnyc/" htmlUrl="https://www.instagram.com/adsoftheworldnyc"/>
+      <outline text=" ogilvybrasil" title=" ogilvybrasil" type="rss"
+            xmlUrl="https://www.instagram.com/ogilvybrasil/" htmlUrl="https://www.instagram.com/ogilvybrasil"/>
+      <outline text=" ogilvyamsterdam" title=" ogilvyamsterdam" type="rss"
+            xmlUrl="https://www.instagram.com/ogilvyamsterdam/" htmlUrl="https://www.instagram.com/ogilvyamsterdam"/>
+      <outline text="Ogilvy" title="Ogilvy" type="rss"
+            xmlUrl="https://www.instagram.com/ogilvy/" htmlUrl="https://www.instagram.com/ogilvy"/>
+  </outline>
+  <outline title="TWITTER" text="TWITTER">
+  </outline>
+  <outline title="BRANDING" text="BRANDING">
+      <outline text="Malu Albertotti" title="Malu Albertotti" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCbD96g3gjw8VfF1kZWFst_A" htmlUrl="https://www.youtube.com/channel/UCbD96g3gjw8VfF1kZWFst_A"/>
+      <outline text="Henrique Carolenske" title="Henrique Carolenske" type="rss"
+            xmlUrl="https://www.instagram.com/henrique.carolenske/" htmlUrl="https://www.instagram.com/henrique.carolenske"/>
+  </outline>
+  <outline title="YT- PROGRAMMING" text="YT- PROGRAMMING">
+      <outline text=" asimov.academy" title=" asimov.academy" type="rss"
+            xmlUrl="https://www.instagram.com/asimov.academy/" htmlUrl="https://www.instagram.com/asimov.academy"/>
+      <outline text=" illumi.ai" title=" illumi.ai" type="rss"
+            xmlUrl="https://www.instagram.com/illumi.ai/" htmlUrl="https://www.instagram.com/illumi.ai"/>
+      <outline text="Pensando Artificial" title="Pensando Artificial" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCGsK1SszrxahAKwONrjv1Wg" htmlUrl="https://www.youtube.com/channel/UCGsK1SszrxahAKwONrjv1Wg"/>
+      <outline text="AUTOTIC" title="AUTOTIC" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCGzCyWHBGYSS_ZbVs0eygvw" htmlUrl="https://www.youtube.com/channel/UCGzCyWHBGYSS_ZbVs0eygvw"/>
+      <outline text="WELL PIRES" title="WELL PIRES" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCOu9pKHv94bFeRy5vzB-b1Q" htmlUrl="https://www.youtube.com/channel/UCOu9pKHv94bFeRy5vzB-b1Q"/>
+      <outline text="DIOLINUX" title="DIOLINUX" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCEf5U1dB5a2e2S-XUlnhxSA" htmlUrl="https://www.youtube.com/channel/UCEf5U1dB5a2e2S-XUlnhxSA"/>
+      <outline text="Lucas Montano" title="Lucas Montano" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCyHOBY6IDZF9zOKJPou2Rgg" htmlUrl="https://www.youtube.com/channel/UCyHOBY6IDZF9zOKJPou2Rgg"/>
+  </outline>
+  <outline title="CINEMA" text="CINEMA">
+      <outline text="Gabriela Barth" title="Gabriela Barth" type="rss"
+            xmlUrl="https://www.instagram.com/barthgabi_/" htmlUrl="https://www.instagram.com/barthgabi_"/>
+      <outline text=" CauÃª" title=" CauÃª" type="rss"
+            xmlUrl="https://www.instagram.com/ocaueempaz/" htmlUrl="https://www.instagram.com/ocaueempaz"/>
+      <outline text="olayemi.af" title="olayemi.af" type="rss"
+            xmlUrl="https://www.instagram.com/olayemi.af/" htmlUrl="https://www.instagram.com/olayemi.af"/>
+      <outline text="CHRIS PRIESTLEY" title="CHRIS PRIESTLEY" type="rss"
+            xmlUrl="https://www.instagram.com/chrispriestley__/?hl=en" htmlUrl="https://www.instagram.com/chrispriestley__"/>
+  </outline>
+  <outline title="BUSINESS" text="BUSINESS">
+      <outline text=" BRUNNO GALVÃO" title=" BRUNNO GALVÃO" type="rss"
+            xmlUrl="https://www.instagram.com/brunno/" htmlUrl="https://www.instagram.com/brunno"/>
+      <outline text="Ecommerce Puro (@ecommercepuro) | Instagram" title="Ecommerce Puro (@ecommercepuro) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/ecommercepuro/" htmlUrl="https://www.instagram.com/ecommercepuro"/>
+  </outline>
+  <outline title="YT - ARTE" text="YT - ARTE">
+      <outline text="Donny Correia" title="Donny Correia" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UC4AldbyPUBh4fLItDVeww0w" htmlUrl="https://www.youtube.com/channel/UC4AldbyPUBh4fLItDVeww0w"/>
+  </outline>
+  <outline title="YT - ERUDITO" text="YT - ERUDITO">
+      <outline text="Open Studio" title="Open Studio" type="rss"
+            xmlUrl="https://www.youtube.com/feeds/videos.xml?channel_id=UCbEFvUhe-QuH9-0Ksno9dwA" htmlUrl="https://www.youtube.com/channel/UCbEFvUhe-QuH9-0Ksno9dwA"/>
+      <outline text="Janne GonÃ§alves de Oliveira (@jannegoncalvesdeoliveira) | Instagram" title="Janne GonÃ§alves de Oliveira (@jannegoncalvesdeoliveira) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/jannegoncalvesdeoliveira/" htmlUrl="https://www.instagram.com/jannegoncalvesdeoliveira"/>
+      <outline text="Studio Tecla (@studio_tecla) | Instagram" title="Studio Tecla (@studio_tecla) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/studio_tecla/" htmlUrl="https://www.instagram.com/studio_tecla"/>
+  </outline>
+  <outline title="IG - MUSICIANS" text="IG - MUSICIANS">
+      <outline text=" Leandro Cabral" title=" Leandro Cabral" type="rss"
+            xmlUrl="https://www.instagram.com/leandro_cabral_/" htmlUrl="https://www.instagram.com/leandro_cabral_"/>
+      <outline text="Hermeto Pascoal" title="Hermeto Pascoal" type="rss"
+            xmlUrl="https://www.instagram.com/hermetopascoal/" htmlUrl="https://www.instagram.com/hermetopascoal"/>
+      <outline text=" ALEC OREA" title=" ALEC OREA" type="rss"
+            xmlUrl="https://www.instagram.com/alecoreapiano/" htmlUrl="https://www.instagram.com/alecoreapiano"/>
+      <outline text=" JoÃ£o Mauricio Galindo" title=" JoÃ£o Mauricio Galindo" type="rss"
+            xmlUrl="https://www.instagram.com/maestrojoaomauriciogalindo/" htmlUrl="https://www.instagram.com/maestrojoaomauriciogalindo"/>
+      <outline text="Bob Mesquita " title="Bob Mesquita " type="rss"
+            xmlUrl="https://www.instagram.com/bob.mesquita/?igsh=N3c5b2lwb3M2dTBr" htmlUrl="https://www.instagram.com/bob.mesquita"/>
+      <outline text="Aquiles Priester (@aquilespriester) | Instagram" title="Aquiles Priester (@aquilespriester) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/aquilespriester/" htmlUrl="https://www.instagram.com/aquilespriester"/>
+      <outline text="Jazz Jane ì ìì£¼ (@euiju_cheong) | Instagram" title="Jazz Jane ì ìì£¼ (@euiju_cheong) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/euiju_cheong/" htmlUrl="https://www.instagram.com/euiju_cheong"/>
+      <outline text="Hamilton de Holanda ð (@hamiltondeholanda) | Instagram" title="Hamilton de Holanda ð (@hamiltondeholanda) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/hamiltondeholanda/" htmlUrl="https://www.instagram.com/hamiltondeholanda"/>
+  </outline>
+  <outline title="IG - MUSIC STUDIES" text="IG - MUSIC STUDIES">
+      <outline text="Fego Camargo" title="Fego Camargo" type="rss"
+            xmlUrl="https://www.instagram.com/escolafegocamargo/" htmlUrl="https://www.instagram.com/escolafegocamargo"/>
+      <outline text="EMESP TOM JOBIM" title="EMESP TOM JOBIM" type="rss"
+            xmlUrl="https://www.instagram.com/emesptomjobim/" htmlUrl="https://www.instagram.com/emesptomjobim"/>
+      <outline text="TUCCA MUSICA" title="TUCCA MUSICA" type="rss"
+            xmlUrl="https://www.instagram.com/tuccamusica/" htmlUrl="https://www.instagram.com/tuccamusica"/>
+  </outline>
+  <outline title="IG - MUSIC CULTURE" text="IG - MUSIC CULTURE">
+      <outline text="NPR MUSIC" title="NPR MUSIC" type="rss"
+            xmlUrl="https://www.instagram.com/nprmusic/" htmlUrl="https://www.instagram.com/nprmusic"/>
+      <outline text="Blue Note Records" title="Blue Note Records" type="rss"
+            xmlUrl="https://www.instagram.com/bluenoterecords/" htmlUrl="https://www.instagram.com/bluenoterecords"/>
+      <outline text=" Music Discovery Hour" title=" Music Discovery Hour" type="rss"
+            xmlUrl="https://www.instagram.com/musicdiscoveryhour/#" htmlUrl="https://www.instagram.com/musicdiscoveryhour"/>
+      <outline text="Open Studio Jazz" title="Open Studio Jazz" type="rss"
+            xmlUrl="https://www.instagram.com/openstudiojazz/" htmlUrl="https://www.instagram.com/openstudiojazz"/>
+      <outline text="Jazz Mansion (@jazzmansion) | Instagram" title="Jazz Mansion (@jazzmansion) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/jazzmansion/" htmlUrl="https://www.instagram.com/jazzmansion"/>
+      <outline text=" JAZZB CLUB" title=" JAZZB CLUB" type="rss"
+            xmlUrl="https://www.instagram.com/jazzbclub/" htmlUrl="https://www.instagram.com/jazzbclub"/>
+  </outline>
+  <outline title="IG - MUSIC XP" text="IG - MUSIC XP">
+  </outline>
+  <outline title="IG - CULTURAL" text="IG - CULTURAL">
+      <outline text="AndrÃ© Dorigo" title="AndrÃ© Dorigo" type="rss"
+            xmlUrl="https://www.instagram.com/andredorigo/" htmlUrl="https://www.instagram.com/andredorigo"/>
+      <outline text=" (@) | Instagram" title=" (@) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/casadasrosas/" htmlUrl="https://www.instagram.com/casadasrosas"/>
+      <outline text="O Parla (@o_parla_) | Instagram" title="O Parla (@o_parla_) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/o_parla_/" htmlUrl="https://www.instagram.com/o_parla_"/>
+      <outline text="Facundo Guerra (@facundoguerra) | Instagram" title="Facundo Guerra (@facundoguerra) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/facundoguerra/" htmlUrl="https://www.instagram.com/facundoguerra"/>
+  </outline>
+  <outline title="IG - EXPERIENCES" text="IG - EXPERIENCES">
+      <outline text=" Rosewood SÃ£o Paulo" title=" Rosewood SÃ£o Paulo" type="rss"
+            xmlUrl="https://www.instagram.com/rosewoodsaopaulo/" htmlUrl="https://www.instagram.com/rosewoodsaopaulo"/>
+      <outline text=" TREZ" title=" TREZ" type="rss"
+            xmlUrl="https://www.instagram.com/trez.bar/" htmlUrl="https://www.instagram.com/trez.bar"/>
+      <outline text="Andrea Schwarz (@gastrodeias) | Instagram" title="Andrea Schwarz (@gastrodeias) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/gastrodeias/" htmlUrl="https://www.instagram.com/gastrodeias"/>
+      <outline text="SÃ£o Paulo Secreto (@saopaulo.secreto) | Instagram" title="SÃ£o Paulo Secreto (@saopaulo.secreto) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/saopaulo.secreto/" htmlUrl="https://www.instagram.com/saopaulo.secreto"/>
+  </outline>
+  <outline title="IG - GOTH CULTURE" text="IG - GOTH CULTURE">
+  </outline>
+  <outline title="IG - UNDERGROUND CENA" text="IG - UNDERGROUND CENA">
+      <outline text="Plastique Noir (@plastiquenoir) | Instagram" title="Plastique Noir (@plastiquenoir) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/plastiquenoir/" htmlUrl="https://www.instagram.com/plastiquenoir"/>
+  </outline>
+  <outline title="IG - GOTH FASHION" text="IG - GOTH FASHION">
+  </outline>
+  <outline title="REEDIT" text="REEDIT">
+      <outline text="Witch House" title="Witch House" type="rss"
+            xmlUrl="https://www.reddit.com/r/witch_house/.rss" htmlUrl="https://www.reddit.com/r/witch_house/"/>
+  </outline>
+  <outline title="IG - FOLLOWING" text="IG - FOLLOWING">
+      <outline text=" Felipe VassÃ£o" title=" Felipe VassÃ£o" type="rss"
+            xmlUrl="https://www.instagram.com/felipevassao/" htmlUrl="https://www.instagram.com/felipevassao"/>
+      <outline text=" Isac Jamba" title=" Isac Jamba" type="rss"
+            xmlUrl="https://www.instagram.com/isacjamba/" htmlUrl="https://www.instagram.com/isacjamba"/>
+      <outline text=" Gastro Ideias" title=" Gastro Ideias" type="rss"
+            xmlUrl="https://www.instagram.com/gastroideias/" htmlUrl="https://www.instagram.com/gastroideias"/>
+      <outline text=" Demonia Shoes" title=" Demonia Shoes" type="rss"
+            xmlUrl="https://www.instagram.com/demonia.shoes/#" htmlUrl="https://www.instagram.com/demonia.shoes"/>
+      <outline text=" Santa Crow" title=" Santa Crow" type="rss"
+            xmlUrl="https://www.instagram.com/santacrowboots/#" htmlUrl="https://www.instagram.com/santacrowboots"/>
+      <outline text="Tegron Clothing" title="Tegron Clothing" type="rss"
+            xmlUrl="https://www.instagram.com/tegronclothing/#" htmlUrl="https://www.instagram.com/tegronclothing"/>
+      <outline text=" SICK" title=" SICK" type="rss"
+            xmlUrl="https://www.instagram.com/sickclothings/" htmlUrl="https://www.instagram.com/sickclothings"/>
+      <outline text=" Gothic Music" title=" Gothic Music" type="rss"
+            xmlUrl="https://www.instagram.com/goth_music/#" htmlUrl="https://www.instagram.com/goth_music"/>
+      <outline text=" Estilo Veggie Shoes" title=" Estilo Veggie Shoes" type="rss"
+            xmlUrl="https://www.instagram.com/estiloveggieshoes/" htmlUrl="https://www.instagram.com/estiloveggieshoes"/>
+      <outline text=" Vilela Boots" title=" Vilela Boots" type="rss"
+            xmlUrl="https://www.instagram.com/vilelaboots/" htmlUrl="https://www.instagram.com/vilelaboots"/>
+      <outline text=" Not Official" title=" Not Official" type="rss"
+            xmlUrl="https://www.instagram.com/notofficial.studio/" htmlUrl="https://www.instagram.com/notofficial.studio"/>
+      <outline text=" Africa Creative" title=" Africa Creative" type="rss"
+            xmlUrl="https://www.instagram.com/africaoficial/" htmlUrl="https://www.instagram.com/africaoficial"/>
+      <outline text=" Kill Star" title=" Kill Star" type="rss"
+            xmlUrl="https://www.instagram.com/wewearkillstar/" htmlUrl="https://www.instagram.com/wewearkillstar"/>
+      <outline text=" Brenda Lab" title=" Brenda Lab" type="rss"
+            xmlUrl="https://www.instagram.com/brendalab_/" htmlUrl="https://www.instagram.com/brendalab_"/>
+      <outline text=" All Glory Clothing" title=" All Glory Clothing" type="rss"
+            xmlUrl="https://www.instagram.com/allgloryclothing/" htmlUrl="https://www.instagram.com/allgloryclothing"/>
+      <outline text=" Trad Core" title=" Trad Core" type="rss"
+            xmlUrl="https://www.instagram.com/trad.core/#" htmlUrl="https://www.instagram.com/trad.core"/>
+      <outline text=" Reversa" title=" Reversa" type="rss"
+            xmlUrl="https://www.instagram.com/lojareversa/" htmlUrl="https://www.instagram.com/lojareversa"/>
+      <outline text=" Kiko Freitas" title=" Kiko Freitas" type="rss"
+            xmlUrl="https://www.instagram.com/kikofreitas/#" htmlUrl="https://www.instagram.com/kikofreitas"/>
+      <outline text="Descolonize" title="Descolonize" type="rss"
+            xmlUrl="https://www.instagram.com/descolonize.educa/" htmlUrl="https://www.instagram.com/descolonize.educa"/>
+      <outline text=" Natasha Editora" title=" Natasha Editora" type="rss"
+            xmlUrl="https://www.instagram.com/natasha.editora/" htmlUrl="https://www.instagram.com/natasha.editora"/>
+      <outline text=" AgÃªncia Koko" title=" AgÃªncia Koko" type="rss"
+            xmlUrl="https://www.instagram.com/agenciakoko/#" htmlUrl="https://www.instagram.com/agenciakoko"/>
+      <outline text=" Lucas Gabriel" title=" Lucas Gabriel" type="rss"
+            xmlUrl="https://www.instagram.com/lucasgabriel.design/#" htmlUrl="https://www.instagram.com/lucasgabriel.design"/>
+      <outline text=" Cannes Lion" title=" Cannes Lion" type="rss"
+            xmlUrl="https://www.instagram.com/cannes_lion/" htmlUrl="https://www.instagram.com/cannes_lion"/>
+      <outline text=" Casa LÃºpulo" title=" Casa LÃºpulo" type="rss"
+            xmlUrl="https://www.instagram.com/casalupulosp/" htmlUrl="https://www.instagram.com/casalupulosp"/>
+      <outline text=" Sabot" title=" Sabot" type="rss"
+            xmlUrl="https://www.instagram.com/sabot_/" htmlUrl="https://www.instagram.com/sabot_"/>
+      <outline text=" Blackat" title=" Blackat" type="rss"
+            xmlUrl="https://www.instagram.com/blackatdj/#" htmlUrl="https://www.instagram.com/blackatdj"/>
+      <outline text=" Clube do Jazz MaceiÃ³" title=" Clube do Jazz MaceiÃ³" type="rss"
+            xmlUrl="https://www.instagram.com/clubedojazzmaceio/" htmlUrl="https://www.instagram.com/clubedojazzmaceio"/>
+      <outline text=" La Iglesia" title=" La Iglesia" type="rss"
+            xmlUrl="https://www.instagram.com/laiglesia.sp/#" htmlUrl="https://www.instagram.com/laiglesia.sp"/>
+      <outline text="Post Punk Videos" title="Post Punk Videos" type="rss"
+            xmlUrl="https://www.instagram.com/postpunkvideos/#" htmlUrl="https://www.instagram.com/postpunkvideos"/>
+      <outline text=" Eloicasagrande" title=" Eloicasagrande" type="rss"
+            xmlUrl="https://www.instagram.com/eloicasagrande/" htmlUrl="https://www.instagram.com/eloicasagrande"/>
+      <outline text=" Carlos Steola" title=" Carlos Steola" type="rss"
+            xmlUrl="https://www.instagram.com/carlossteola/" htmlUrl="https://www.instagram.com/carlossteola"/>
+      <outline text=" Sneeze" title=" Sneeze" type="rss"
+            xmlUrl="https://www.instagram.com/sneezeoficial/#" htmlUrl="https://www.instagram.com/sneezeoficial"/>
+      <outline text=" The Door" title=" The Door" type="rss"
+            xmlUrl="https://www.instagram.com/hideout.thedoor/#" htmlUrl="https://www.instagram.com/hideout.thedoor"/>
+      <outline text=" Guilherme Guedes" title=" Guilherme Guedes" type="rss"
+            xmlUrl="https://www.instagram.com/gguedes/" htmlUrl="https://www.instagram.com/gguedes"/>
+      <outline text=" NPR" title=" NPR" type="rss"
+            xmlUrl="https://www.instagram.com/npr/" htmlUrl="https://www.instagram.com/npr"/>
+      <outline text=" ConservatÃ³rio Bras MÃºsica" title=" ConservatÃ³rio Bras MÃºsica" type="rss"
+            xmlUrl="https://www.instagram.com/cbm.musica/#" htmlUrl="https://www.instagram.com/cbm.musica"/>
+      <outline text=" Latino" title=" Latino" type="rss"
+            xmlUrl="https://www.instagram.com/estudiolatinodedesign/#" htmlUrl="https://www.instagram.com/estudiolatinodedesign"/>
+      <outline text=" OSESP" title=" OSESP" type="rss"
+            xmlUrl="https://www.instagram.com/osesp_/#" htmlUrl="https://www.instagram.com/osesp_"/>
+      <outline text=" Amanda Maria" title=" Amanda Maria" type="rss"
+            xmlUrl="https://www.instagram.com/amandamariaoficial/" htmlUrl="https://www.instagram.com/amandamariaoficial"/>
+      <outline text=" Nano Art Market" title=" Nano Art Market" type="rss"
+            xmlUrl="https://www.instagram.com/nanoartmarket/" htmlUrl="https://www.instagram.com/nanoartmarket"/>
+      <outline text=" 18" title=" 18" type="rss"
+            xmlUrl="https://www.instagram.com/galeria.dezoito/#" htmlUrl="https://www.instagram.com/galeria.dezoito"/>
+      <outline text=" Attom Design" title=" Attom Design" type="rss"
+            xmlUrl="https://www.instagram.com/attom.design/" htmlUrl="https://www.instagram.com/attom.design"/>
+      <outline text=" The End TV" title=" The End TV" type="rss"
+            xmlUrl="https://www.instagram.com/theend.tv/" htmlUrl="https://www.instagram.com/theend.tv"/>
+      <outline text=" Fizemos um Role" title=" Fizemos um Role" type="rss"
+            xmlUrl="https://www.instagram.com/fizemosumrole/#" htmlUrl="https://www.instagram.com/fizemosumrole"/>
+      <outline text=" Roteiro SP" title=" Roteiro SP" type="rss"
+            xmlUrl="https://www.instagram.com/roteiro.sp/" htmlUrl="https://www.instagram.com/roteiro.sp"/>
+      <outline text=" Robert Glasper" title=" Robert Glasper" type="rss"
+            xmlUrl="https://www.instagram.com/robertglasper/" htmlUrl="https://www.instagram.com/robertglasper"/>
+      <outline text=" Tucca MÃºsica" title=" Tucca MÃºsica" type="rss"
+            xmlUrl="https://www.instagram.com/tuccamusica/#" htmlUrl="https://www.instagram.com/tuccamusica"/>
+      <outline text=" Amaro Freitas" title=" Amaro Freitas" type="rss"
+            xmlUrl="https://www.instagram.com/amarofreitaspiano/" htmlUrl="https://www.instagram.com/amarofreitaspiano"/>
+      <outline text=" Herbert Medeiros" title=" Herbert Medeiros" type="rss"
+            xmlUrl="https://www.instagram.com/herbert_medeiros/" htmlUrl="https://www.instagram.com/herbert_medeiros"/>
+      <outline text=" Escola de MÃºsica da UFRJ" title=" Escola de MÃºsica da UFRJ" type="rss"
+            xmlUrl="https://www.instagram.com/escolademusicaufrj/" htmlUrl="https://www.instagram.com/escolademusicaufrj"/>
+      <outline text=" AndrÃ© Barcinski" title=" AndrÃ© Barcinski" type="rss"
+            xmlUrl="https://www.instagram.com/andrebarcinski/" htmlUrl="https://www.instagram.com/andrebarcinski"/>
+      <outline text=" MASP" title=" MASP" type="rss"
+            xmlUrl="https://www.instagram.com/masp/#" htmlUrl="https://www.instagram.com/masp"/>
+      <outline text=" Clube de Leitura ClÃ¡ssica" title=" Clube de Leitura ClÃ¡ssica" type="rss"
+            xmlUrl="https://www.instagram.com/clubedeleituraclassica/#" htmlUrl="https://www.instagram.com/clubedeleituraclassica"/>
+      <outline text=" Morar SP" title=" Morar SP" type="rss"
+            xmlUrl="https://www.instagram.com/morarsp/#" htmlUrl="https://www.instagram.com/morarsp"/>
+      <outline text=" Thiago VitÃ³rio" title=" Thiago VitÃ³rio" type="rss"
+            xmlUrl="https://www.instagram.com/thivitorio/" htmlUrl="https://www.instagram.com/thivitorio"/>
+      <outline text=" Brutal Kill" title=" Brutal Kill" type="rss"
+            xmlUrl="https://www.instagram.com/brutalkill/" htmlUrl="https://www.instagram.com/brutalkill"/>
+      <outline text=" Daily Jazz Curation" title=" Daily Jazz Curation" type="rss"
+            xmlUrl="https://www.instagram.com/jazz.curation.daily/#" htmlUrl="https://www.instagram.com/jazz.curation.daily"/>
+      <outline text=" DOMMY" title=" DOMMY" type="rss"
+            xmlUrl="https://www.instagram.com/doomy.clothing/" htmlUrl="https://www.instagram.com/doomy.clothing"/>
+      <outline text=" Studio Tecla" title=" Studio Tecla" type="rss"
+            xmlUrl="https://www.instagram.com/studio_tecla/#" htmlUrl="https://www.instagram.com/studio_tecla"/>
+      <outline text=" Music Man Jazz" title=" Music Man Jazz" type="rss"
+            xmlUrl="https://www.instagram.com/musicmanjazz/#" htmlUrl="https://www.instagram.com/musicmanjazz"/>
+      <outline text=" Witch Gaze" title=" Witch Gaze" type="rss"
+            xmlUrl="https://www.instagram.com/witchgaze_official/#" htmlUrl="https://www.instagram.com/witchgaze_official"/>
+      <outline text=" Anthony Drums" title=" Anthony Drums" type="rss"
+            xmlUrl="https://www.instagram.com/luvskidrums/" htmlUrl="https://www.instagram.com/luvskidrums"/>
+      <outline text=" Ephigenia" title=" Ephigenia" type="rss"
+            xmlUrl="https://www.instagram.com/ephigeniasp/" htmlUrl="https://www.instagram.com/ephigeniasp"/>
+      <outline text=" Blow Records" title=" Blow Records" type="rss"
+            xmlUrl="https://www.instagram.com/blowrecordsbr/#" htmlUrl="https://www.instagram.com/blowrecordsbr"/>
+      <outline text=" Hub Boop" title=" Hub Boop" type="rss"
+            xmlUrl="https://www.instagram.com/hubboop/#" htmlUrl="https://www.instagram.com/hubboop"/>
+      <outline text=" Sala Bar" title=" Sala Bar" type="rss"
+            xmlUrl="https://www.instagram.com/salabarsp/#" htmlUrl="https://www.instagram.com/salabarsp"/>
+      <outline text=" NPR Music" title=" NPR Music" type="rss"
+            xmlUrl="https://www.instagram.com/nprmusic/#" htmlUrl="https://www.instagram.com/nprmusic"/>
+      <outline text=" Herbie Hancock" title=" Herbie Hancock" type="rss"
+            xmlUrl="https://www.instagram.com/herbiehancock/" htmlUrl="https://www.instagram.com/herbiehancock"/>
+      <outline text=" Indiana Nomma" title=" Indiana Nomma" type="rss"
+            xmlUrl="https://www.instagram.com/indiananomma/" htmlUrl="https://www.instagram.com/indiananomma"/>
+      <outline text=" Descobrindo SP" title=" Descobrindo SP" type="rss"
+            xmlUrl="https://www.instagram.com/descobrindosp/" htmlUrl="https://www.instagram.com/descobrindosp"/>
+      <outline text=" Jonathan Ferr" title=" Jonathan Ferr" type="rss"
+            xmlUrl="https://www.instagram.com/jonathanferr_oficial/" htmlUrl="https://www.instagram.com/jonathanferr_oficial"/>
+      <outline text=" Tauan Gon" title=" Tauan Gon" type="rss"
+            xmlUrl="https://www.instagram.com/tauangonx/" htmlUrl="https://www.instagram.com/tauangonx"/>
+      <outline text=" Studio Mees" title=" Studio Mees" type="rss"
+            xmlUrl="https://www.instagram.com/studio.mees/#" htmlUrl="https://www.instagram.com/studio.mees"/>
+      <outline text="Capacitor ExcursÃµes (@capacitor_excursoes) | Instagram" title="Capacitor ExcursÃµes (@capacitor_excursoes) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/capacitor_excursoes/" htmlUrl="https://www.instagram.com/capacitor_excursoes"/>
+      <outline text="Intercept Brasil (@theinterceptbrasil) | Instagram" title="Intercept Brasil (@theinterceptbrasil) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/theinterceptbrasil/" htmlUrl="https://www.instagram.com/theinterceptbrasil"/>
+      <outline text="Pragmatismo PolÃ­tico (@pragmatismopolitico) | Instagram" title="Pragmatismo PolÃ­tico (@pragmatismopolitico) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/pragmatismopolitico/" htmlUrl="https://www.instagram.com/pragmatismopolitico"/>
+      <outline text="GeopoliÌtica Hoje (@geopoliticahoje) | Instagram" title="GeopoliÌtica Hoje (@geopoliticahoje) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/geopoliticahoje/" htmlUrl="https://www.instagram.com/geopoliticahoje"/>
+      <outline text="Sensacionalista Oficial (@jornalsensacionalista) | Instagram" title="Sensacionalista Oficial (@jornalsensacionalista) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/jornalsensacionalista/" htmlUrl="https://www.instagram.com/jornalsensacionalista"/>
+  </outline>
+  <outline title="IG - IMPORTAÃÃO" text="IG - IMPORTAÃÃO">
+      <outline text="Loot - Distribuidora e Prep center (@grupoloot) | Instagram" title="Loot - Distribuidora e Prep center (@grupoloot) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/grupoloot/" htmlUrl="https://www.instagram.com/grupoloot"/>
+      <outline text="UP-HUB (@uphubhk) | Instagram" title="UP-HUB (@uphubhk) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/uphubhk/" htmlUrl="https://www.instagram.com/uphubhk"/>
+      <outline text="Igor Savoia (@igordesavoia) | Instagram" title="Igor Savoia (@igordesavoia) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/igordesavoia/" htmlUrl="https://www.instagram.com/igordesavoia"/>
+      <outline text="WEI IMPORT (@wei_import.oficial) | Instagram" title="WEI IMPORT (@wei_import.oficial) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/wei_import.oficial/" htmlUrl="https://www.instagram.com/wei_import.oficial"/>
+      <outline text="Xh Import (@xhimport) | Instagram" title="Xh Import (@xhimport) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/xhimport/" htmlUrl="https://www.instagram.com/xhimport"/>
+      <outline text="ABO ALI CHINA - HUSSEIN (@chinahunterstrade) | Instagram" title="ABO ALI CHINA - HUSSEIN (@chinahunterstrade) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/chinahunterstrade/" htmlUrl="https://www.instagram.com/chinahunterstrade"/>
+      <outline text="Rodrigo Giraldelli (@rodrigogiraldelli) | Instagram" title="Rodrigo Giraldelli (@rodrigogiraldelli) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/rodrigogiraldelli/" htmlUrl="https://www.instagram.com/rodrigogiraldelli"/>
+  </outline>
+  <outline title="IG - ARTE" text="IG - ARTE">
+      <outline text="Maxwell Alexandre (@maxwell__alexandre) | Instagram" title="Maxwell Alexandre (@maxwell__alexandre) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/maxwell__alexandre/" htmlUrl="https://www.instagram.com/maxwell__alexandre"/>
+      <outline text="Bienal de SÃ£o Paulo (@bienalsaopaulo) | Instagram" title="Bienal de SÃ£o Paulo (@bienalsaopaulo) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/bienalsaopaulo/" htmlUrl="https://www.instagram.com/bienalsaopaulo"/>
+      <outline text="Alisson Gutemberg (@cinema.com.teoria) | Instagram" title="Alisson Gutemberg (@cinema.com.teoria) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/cinema.com.teoria/" htmlUrl="https://www.instagram.com/cinema.com.teoria"/>
+      <outline text="Emmanuel Tanka Fonta (@tanka_fonta) | Instagram" title="Emmanuel Tanka Fonta (@tanka_fonta) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/tanka_fonta/" htmlUrl="https://www.instagram.com/tanka_fonta"/>
+  </outline>
+  <outline title="CHINA" text="CHINA">
+      <outline text="Felipe Durante (@felipe.durante) | Instagram" title="Felipe Durante (@felipe.durante) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/felipe.durante/" htmlUrl="https://www.instagram.com/felipe.durante"/>
+      <outline text="Li Jingjing æèè (@lijingjing_china) | Instagram" title="Li Jingjing æèè (@lijingjing_china) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/lijingjing_china/" htmlUrl="https://www.instagram.com/lijingjing_china"/>
+  </outline>
+  <outline title="IG - TECH" text="IG - TECH">
+      <outline text="Rodrigo Tadewald (@rodrigotadewald) | Instagram" title="Rodrigo Tadewald (@rodrigotadewald) | Instagram" type="rss"
+            xmlUrl="https://www.instagram.com/rodrigotadewald/" htmlUrl="https://www.instagram.com/rodrigotadewald"/>
+  </outline>
+</body>
+</opml>

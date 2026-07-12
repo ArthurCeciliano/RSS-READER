@@ -1,0 +1,55 @@
+.health-page {
+  padding: 24px 32px;
+}
+
+.health-page h2 {
+  font-size: 15px;
+  margin-bottom: 16px;
+}
+
+.health-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.health-table th {
+  text-align: left;
+  color: var(--text-tertiary);
+  font-weight: 500;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.health-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.status-pill {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.status-pill.degraded {
+  background: rgba(214, 166, 66, 0.15);
+  color: var(--warning);
+}
+
+.status-pill.failing {
+  background: rgba(224, 87, 79, 0.15);
+  color: var(--danger);
+}
+
+.health-error {
+  color: var(--danger);
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
