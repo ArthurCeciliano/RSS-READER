@@ -11,7 +11,10 @@ import { StatsPage } from './components/StatsPage';
 import { RulesPage } from './components/RulesPage';
 import { TagsPage } from './components/TagsPage';
 import { api } from './api/client';
+import { playBeep, requestNotificationPermission, showDesktopNotification } from './notifications';
 import type { FeedItem, FolderNode, ItemFilter, SelectedScope, SortOrder, Tag, ViewMode } from './types';
+
+const NOTIFICATION_POLL_MS = 20_000;
 
 type PageView = 'reader-shell' | 'settings' | 'health' | 'rules' | 'tags' | 'stats';
 
@@ -60,6 +63,23 @@ export default function App() {
   useEffect(() => {
     loadFolders();
   }, [loadFolders]);
+
+  useEffect(() => {
+    requestNotificationPermission();
+    const poll = setInterval(() => {
+      api
+        .getPendingNotifications()
+        .then((r) => {
+          for (const item of r.items) {
+            if (item.pendingDesktopNotify) showDesktopNotification(item.title, item.source.title);
+            if (item.pendingSound) playBeep();
+            api.ackNotification(item.id).catch(() => {});
+          }
+        })
+        .catch(() => {});
+    }, NOTIFICATION_POLL_MS);
+    return () => clearInterval(poll);
+  }, []);
 
   useEffect(() => {
     if (page !== 'reader-shell') return;

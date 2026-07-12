@@ -147,4 +147,11 @@ export const api = {
   getTags: () => request<{ tags: Tag[] }>('/api/tags'),
 
   deleteTag: (id: string) => request(`/api/tags/${id}`, { method: 'DELETE' }),
+
+  getPendingNotifications: () =>
+    request<{
+      items: Array<{ id: string; title: string; pendingDesktopNotify: boolean; pendingSound: boolean; source: { title: string } }>;
+    }>('/api/items/pending-notifications'),
+
+  ackNotification: (id: string) => request(`/api/items/${id}/ack-notification`, { method: 'POST' }),
 };

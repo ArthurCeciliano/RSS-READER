@@ -86,4 +86,32 @@ export async function itemsRoutes(app: FastifyInstance) {
     const result = await prisma.item.updateMany({ where, data: { isRead: true } });
     return { updated: result.count };
   });
+
+  // Polled by the frontend (module 3: notify_desktop/play_sound rule actions) --
+  // desktop Notifications and audio can only fire from the browser, so the
+  // backend just surfaces which items a matching rule flagged, and the
+  // frontend acks each one back to clear the flag once shown/played.
+  app.get('/api/items/pending-notifications', async () => {
+    const items = await prisma.item.findMany({
+      where: { OR: [{ pendingDesktopNotify: true }, { pendingSound: true }] },
+      select: {
+        id: true,
+        title: true,
+        pendingDesktopNotify: true,
+        pendingSound: true,
+        source: { select: { title: true } },
+      },
+      orderBy: { createdAt: 'asc' },
+      take: 20,
+    });
+    return { items };
+  });
+
+  app.post<{ Params: { id: string } }>('/api/items/:id/ack-notification', async (req, reply) => {
+    await prisma.item.update({
+      where: { id: req.params.id },
+      data: { pendingDesktopNotify: false, pendingSound: false },
+    });
+    return reply.code(204).send();
+  });
 }
