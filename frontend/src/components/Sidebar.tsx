@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { FolderNode, SelectedScope } from '../types';
 import { api, ApiError } from '../api/client';
+import { deleteSourceConfirm, renameSourcePrompt } from '../sourceActions';
 import { ContextMenu, type ContextMenuAction } from './ContextMenu';
 import { MoveToFolderDialog } from './MoveToFolderDialog';
 import './Sidebar.css';
@@ -114,21 +115,16 @@ export function Sidebar({
   }
 
   async function handleRenameSource(source: { id: string; title: string }) {
-    const title = window.prompt('Renomear fonte:', source.title);
-    if (!title?.trim() || title.trim() === source.title) return;
     try {
-      await api.updateSource(source.id, { title: title.trim() });
-      onFoldersChanged();
+      if (await renameSourcePrompt(source.id, source.title)) onFoldersChanged();
     } catch (err) {
       reportError(err, 'Falha ao renomear fonte.');
     }
   }
 
   async function handleDeleteSource(source: { id: string; title: string }) {
-    if (!window.confirm(`Excluir a fonte "${source.title}"? Os itens já lidos/estrelados também são apagados.`)) return;
     try {
-      await api.deleteSource(source.id);
-      onFoldersChanged();
+      if (await deleteSourceConfirm(source.id, source.title)) onFoldersChanged();
     } catch (err) {
       reportError(err, 'Falha ao excluir fonte.');
     }

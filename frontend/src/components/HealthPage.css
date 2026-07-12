@@ -53,3 +53,34 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.health-actions {
+  display: flex;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.health-actions button {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  border-radius: 5px;
+  width: 26px;
+  height: 26px;
+  font-size: 12px;
+}
+
+.health-actions button:hover {
+  color: var(--text-primary);
+}
+
+.health-actions button.danger:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.health-page-error {
+  color: var(--danger);
+  font-size: 13px;
+  margin-bottom: 12px;
+}
