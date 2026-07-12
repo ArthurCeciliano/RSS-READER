@@ -7,6 +7,7 @@ import { Reader } from './components/Reader';
 import { AddSourceDialog } from './components/AddSourceDialog';
 import { SettingsPage } from './components/SettingsPage';
 import { HealthPage } from './components/HealthPage';
+import { StatsPage } from './components/StatsPage';
 import { Placeholder } from './components/Placeholder';
 import { api } from './api/client';
 import type { FeedItem, FolderNode, ItemFilter, SelectedScope, SortOrder, ViewMode } from './types';
@@ -27,6 +28,7 @@ export default function App() {
   const [showAddSource, setShowAddSource] = useState(false);
   const [page, setPage] = useState<PageView>('reader-shell');
   const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const loadFolders = useCallback(() => {
     api.getFolders().then((r) => setFolders(r.folders)).catch(() => {});
@@ -58,8 +60,22 @@ export default function App() {
   }, [loadFolders]);
 
   useEffect(() => {
-    if (page === 'reader-shell') loadItems();
-  }, [loadItems, page]);
+    if (page !== 'reader-shell') return;
+    if (!searchQuery.trim()) {
+      loadItems();
+      return;
+    }
+    const handle = setTimeout(() => {
+      api
+        .searchItems(searchQuery.trim())
+        .then((r) => {
+          setItems(r.items);
+          setNextCursor(null);
+        })
+        .catch(() => {});
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [loadItems, page, searchQuery]);
 
   function toggleStar(item: FeedItem) {
     const next = !item.isStarred;
@@ -108,6 +124,7 @@ export default function App() {
 
   function handleSelectScope(next: SelectedScope) {
     setScope(next);
+    setSearchQuery('');
     setPage('reader-shell');
   }
 
@@ -122,7 +139,9 @@ export default function App() {
             ? 'Tags'
             : page === 'stats'
               ? 'Estatísticas'
-              : scope.label;
+              : searchQuery.trim()
+                ? `Busca: "${searchQuery.trim()}"`
+                : scope.label;
 
   return (
     <div className="app-shell">
@@ -155,6 +174,8 @@ export default function App() {
               onMarkAllRead={handleMarkAllRead}
               onRefresh={handleRefresh}
               refreshing={refreshing}
+              searchQuery={searchQuery}
+              onSearchQueryChange={setSearchQuery}
             />
             <div className="app-content">
               <ItemList
@@ -176,7 +197,7 @@ export default function App() {
           <Placeholder title="Regras" description="Motor de regras SE/ENTÃO chega na Fase 2." />
         )}
         {page === 'tags' && <Placeholder title="Tags" description="Gestão de tags chega na Fase 2." />}
-        {page === 'stats' && <Placeholder title="Estatísticas" description="Estatísticas chegam na Fase 2." />}
+        {page === 'stats' && <StatsPage />}
       </div>
 
       {selectedItem && (

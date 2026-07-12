@@ -69,6 +69,8 @@ export const api = {
     return request<{ items: FeedItem[]; nextCursor: string | null }>(`/api/items?${search.toString()}`);
   },
 
+  searchItems: (q: string) => request<{ items: FeedItem[] }>(`/api/items/search?q=${encodeURIComponent(q)}`),
+
   updateItem: (id: string, patch: { isRead?: boolean; isStarred?: boolean }) =>
     request(`/api/items/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
 
@@ -112,4 +114,15 @@ export const api = {
 
   updateSettings: (patch: Record<string, unknown>) =>
     request('/api/settings', { method: 'PUT', body: JSON.stringify(patch) }),
+
+  getStats: (days = 30) =>
+    request<{
+      days: number;
+      itemsPerDay: Array<{ date: string; count: number }>;
+      topSources: Array<{ sourceId: string; title: string; count: number }>;
+      readRate: { read: number; unread: number; total: number };
+      starredCount: number;
+      sourceCount: number;
+      folderCount: number;
+    }>(`/api/stats?days=${days}`),
 };

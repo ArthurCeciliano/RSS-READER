@@ -10,6 +10,7 @@ import { sourcesRoutes } from './modules/api/routes/sources.js';
 import { itemsRoutes } from './modules/api/routes/items.js';
 import { opmlRoutes } from './modules/api/routes/opml.js';
 import { settingsRoutes } from './modules/api/routes/settings.js';
+import { statsRoutes } from './modules/api/routes/stats.js';
 
 // Combined-deploy mode (module 1: single Render Web Service instead of separate
 // worker/static-site services) — importing this starts the BullMQ worker in the
@@ -37,6 +38,7 @@ await app.register(sourcesRoutes);
 await app.register(itemsRoutes);
 await app.register(opmlRoutes);
 await app.register(settingsRoutes);
+await app.register(statsRoutes);
 
 if (env.serveFrontend) {
   const dir = path.dirname(fileURLToPath(import.meta.url));

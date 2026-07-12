@@ -101,6 +101,11 @@ model Item {
 
   createdAt DateTime @default(now())
 
+  /// Generated column (title+summary), GIN-indexed -- see migration 000000000001_search.
+  /// Prisma can't manage generated columns, so this is never read/written via the
+  /// Client query API; the search route hits it directly with $queryRaw.
+  searchVector Unsupported("tsvector")?
+
   @@unique([sourceId, dedupeHash])
   @@index([sourceId, publishedAt])
   @@index([isRead])

@@ -31,6 +31,20 @@
   font-size: 12px;
 }
 
+.search-input {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 5px;
+  padding: 5px 10px;
+  font-size: 12px;
+  width: 180px;
+}
+
+.search-input::placeholder {
+  color: var(--text-tertiary);
+}
+
 .view-mode-switch {
   display: flex;
   border: 1px solid var(--border-subtle);

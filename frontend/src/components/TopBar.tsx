@@ -14,6 +14,8 @@ interface TopBarProps {
   onMarkAllRead: () => void;
   onRefresh: () => void;
   refreshing: boolean;
+  searchQuery: string;
+  onSearchQueryChange: (q: string) => void;
 }
 
 const VIEW_MODES: Array<{ mode: ViewMode; label: string; icon: string }> = [
@@ -36,12 +38,22 @@ export function TopBar({
   onMarkAllRead,
   onRefresh,
   refreshing,
+  searchQuery,
+  onSearchQueryChange,
 }: TopBarProps) {
   return (
     <header className="top-bar">
       <div className="top-bar-title">{scopeLabel}</div>
 
       <div className="top-bar-controls">
+        <input
+          className="search-input"
+          type="search"
+          placeholder="Buscar nos itens..."
+          value={searchQuery}
+          onChange={(e) => onSearchQueryChange(e.target.value)}
+        />
+
         <select value={filter} onChange={(e) => onFilterChange(e.target.value as ItemFilter)}>
           <option value="all">Todos</option>
           <option value="unread">Não lidos</option>

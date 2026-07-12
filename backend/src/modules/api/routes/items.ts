@@ -42,6 +42,33 @@ export async function itemsRoutes(app: FastifyInstance) {
     return { items: page, nextCursor: hasMore ? page[page.length - 1]?.id ?? null : null };
   });
 
+  app.get<{ Querystring: { q?: string; limit?: string } }>('/api/items/search', async (req) => {
+    const q = req.query.q?.trim();
+    if (!q) return { items: [] };
+    const limit = Math.min(50, Number.parseInt(req.query.limit ?? '30', 10) || 30);
+
+    // searchVector is a generated tsvector column (title+summary) Prisma can't model
+    // as a queryable field (module 3) -- ranked ids come from raw SQL, then a normal
+    // findMany hydrates full rows (incl. the source join) in that rank order.
+    const ranked = await prisma.$queryRaw<Array<{ id: string }>>`
+      SELECT id FROM "Item"
+      WHERE "searchVector" @@ plainto_tsquery('simple', ${q})
+      ORDER BY ts_rank("searchVector", plainto_tsquery('simple', ${q})) DESC
+      LIMIT ${limit}
+    `;
+    const ids = ranked.map((r) => r.id);
+    if (ids.length === 0) return { items: [] };
+
+    const items = await prisma.item.findMany({
+      where: { id: { in: ids } },
+      include: { source: { select: { title: true, faviconUrl: true, siteUrl: true, type: true } } },
+    });
+    const order = new Map(ids.map((id, i) => [id, i]));
+    items.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+
+    return { items };
+  });
+
   app.patch<{ Params: { id: string }; Body: { isRead?: boolean; isStarred?: boolean } }>(
     '/api/items/:id',
     async (req) => {
