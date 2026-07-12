@@ -55,11 +55,15 @@ function fakeHttp(responses: Record<string, { status: number; body: string; cont
 }
 
 describe('resolveSource', () => {
-  it('resolves a YouTube @handle by fetching the channel page for its channelId', async () => {
+  it('resolves a YouTube @handle by fetching the channel page for its channelId, then the feed for its title', async () => {
     const http = fakeHttp({
       'https://www.youtube.com/@InstitutoConhecimentoLiberta': {
         status: 200,
         body: '<html><script>var x = {"channelId":"UCaIqJHHo9TJiLINzOFJRl2Q"};</script></html>',
+      },
+      'https://www.youtube.com/feeds/videos.xml?channel_id=UCaIqJHHo9TJiLINzOFJRl2Q': {
+        status: 200,
+        body: '<?xml version="1.0" encoding="UTF-8"?><feed xmlns="http://www.w3.org/2005/Atom"><title>Instituto Conhecimento Liberta</title></feed>',
       },
     });
     const result = await resolveSource('https://www.youtube.com/@InstitutoConhecimentoLiberta', http);
@@ -69,6 +73,29 @@ describe('resolveSource', () => {
         type: 'youtube',
         identityUrl: 'https://www.youtube.com/channel/UCaIqJHHo9TJiLINzOFJRl2Q',
         feedUrl: 'https://www.youtube.com/feeds/videos.xml?channel_id=UCaIqJHHo9TJiLINzOFJRl2Q',
+        title: 'Instituto Conhecimento Liberta',
+      },
+    });
+  });
+
+  it('fetches the channel name immediately for a pasted YouTube channel URL too (not just @handles)', async () => {
+    const http = fakeHttp({
+      'https://www.youtube.com/feeds/videos.xml?channel_id=UC2bZgihqibFD_vhaYEXQZFg': {
+        status: 200,
+        body: '<?xml version="1.0" encoding="UTF-8"?><feed xmlns="http://www.w3.org/2005/Atom"><title>Galãs Feios</title></feed>',
+      },
+    });
+    const result = await resolveSource(
+      'https://www.youtube.com/channel/UC2bZgihqibFD_vhaYEXQZFg',
+      http,
+    );
+    expect(result).toEqual({
+      kind: 'resolved',
+      source: {
+        type: 'youtube',
+        identityUrl: 'https://www.youtube.com/channel/UC2bZgihqibFD_vhaYEXQZFg',
+        feedUrl: 'https://www.youtube.com/feeds/videos.xml?channel_id=UC2bZgihqibFD_vhaYEXQZFg',
+        title: 'Galãs Feios',
       },
     });
   });
@@ -83,7 +110,12 @@ describe('resolveSource', () => {
     const result = await resolveSource('https://example.com/rss2.xml', http);
     expect(result).toEqual({
       kind: 'resolved',
-      source: { type: 'rss', identityUrl: 'https://example.com/rss2.xml', feedUrl: 'https://example.com/rss2.xml' },
+      source: {
+        type: 'rss',
+        identityUrl: 'https://example.com/rss2.xml',
+        feedUrl: 'https://example.com/rss2.xml',
+        title: 'X',
+      },
     });
   });
 
@@ -140,6 +172,7 @@ describe('resolveSource', () => {
         identityUrl: 'https://plain.example.com/feed',
         feedUrl: 'https://plain.example.com/feed',
         siteUrl: 'https://plain.example.com/',
+        title: 'Plain',
       },
     });
   });

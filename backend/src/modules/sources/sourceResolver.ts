@@ -14,6 +14,7 @@ import {
   normalizeIdentityUrl,
 } from './urlNormalizer.js';
 import { buildConventionalFeedUrls, discoverFeedLinksFromHtml, looksLikeFeedContent } from './feedDiscovery.js';
+import { parseFeedXml } from '../feeds/feedParser.js';
 
 export type ResolvedSourceType =
   | 'rss'
@@ -46,6 +47,34 @@ export type ResolveResult =
 
 export interface HttpClient {
   getText(url: string): Promise<{ status: number; body: string; contentType: string | null }>;
+}
+
+/** Best-effort feed <title> extraction from an already-fetched body — never throws. */
+async function titleFromFeedBody(body: string): Promise<string | undefined> {
+  try {
+    const feed = await parseFeedXml(body);
+    return feed.title || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * So "Adicionar fonte" can show the real channel name immediately (module 1),
+ * fetch the feed itself and read its own <title> — cheaper and more reliable
+ * than scraping the channel HTML page's <title> tag (which includes
+ * " - YouTube" suffixes and varies by locale).
+ */
+async function withYouTubeTitle(source: ResolvedSource, http: HttpClient): Promise<ResolvedSource> {
+  if (source.type !== 'youtube' || source.title || !source.feedUrl) return source;
+  try {
+    const res = await http.getText(source.feedUrl);
+    if (res.status < 200 || res.status >= 300) return source;
+    const title = await titleFromFeedBody(res.body);
+    return title ? { ...source, title } : source;
+  } catch {
+    return source;
+  }
 }
 
 /**
@@ -97,7 +126,7 @@ export function classifyDeterministic(input: string): ResolvedSource | null {
  */
 export async function resolveSource(input: string, http: HttpClient): Promise<ResolveResult> {
   const deterministic = classifyDeterministic(input);
-  if (deterministic) return { kind: 'resolved', source: deterministic };
+  if (deterministic) return { kind: 'resolved', source: await withYouTubeTitle(deterministic, http) };
 
   const handle = extractYouTubeHandle(input);
   if (handle) {
@@ -105,14 +134,12 @@ export async function resolveSource(input: string, http: HttpClient): Promise<Re
     const page = await http.getText(channelPageUrl);
     const channelId = extractChannelIdFromYouTubePage(page.body);
     if (channelId) {
-      return {
-        kind: 'resolved',
-        source: {
-          type: 'youtube',
-          identityUrl: normalizeIdentityUrl(`https://www.youtube.com/channel/${channelId}`),
-          feedUrl: buildYouTubeChannelFeedUrl(channelId),
-        },
+      const source: ResolvedSource = {
+        type: 'youtube',
+        identityUrl: normalizeIdentityUrl(`https://www.youtube.com/channel/${channelId}`),
+        feedUrl: buildYouTubeChannelFeedUrl(channelId),
       };
+      return { kind: 'resolved', source: await withYouTubeTitle(source, http) };
     }
     return { kind: 'unresolved', reason: 'could_not_resolve_youtube_channel_id' };
   }
@@ -122,7 +149,8 @@ export async function resolveSource(input: string, http: HttpClient): Promise<Re
   if (direct.status >= 200 && direct.status < 400 && looksLikeFeedContent(direct.body)) {
     const feedUrl = ensureUrl(input).toString();
     const type = direct.body.trimStart().startsWith('{') ? 'json_feed' : detectXmlFeedType(direct.body);
-    return { kind: 'resolved', source: { type, identityUrl: normalizeIdentityUrl(feedUrl), feedUrl } };
+    const title = await titleFromFeedBody(direct.body);
+    return { kind: 'resolved', source: { type, identityUrl: normalizeIdentityUrl(feedUrl), feedUrl, title } };
   }
 
   // Case 2: generic site -> discover feed links.
@@ -146,6 +174,7 @@ export async function resolveSource(input: string, http: HttpClient): Promise<Re
   for (const candidate of buildConventionalFeedUrls(siteUrl)) {
     const res = await http.getText(candidate);
     if (res.status >= 200 && res.status < 400 && looksLikeFeedContent(res.body)) {
+      const title = await titleFromFeedBody(res.body);
       return {
         kind: 'resolved',
         source: {
@@ -153,6 +182,7 @@ export async function resolveSource(input: string, http: HttpClient): Promise<Re
           identityUrl: normalizeIdentityUrl(candidate),
           feedUrl: candidate,
           siteUrl,
+          title,
         },
       };
     }
