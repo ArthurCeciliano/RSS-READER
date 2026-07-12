@@ -1,13 +1,28 @@
 import { useEffect, useState } from 'react';
 import { api, ApiError } from '../api/client';
-import type { SourceHealth } from '../types';
+import type { FolderNode, SourceHealth } from '../types';
 import { relativeTime } from '../utils/relativeTime';
 import { deleteSourceConfirm, renameSourcePrompt } from '../sourceActions';
+import { ContextMenu, type ContextMenuAction } from './ContextMenu';
+import { MoveToFolderDialog } from './MoveToFolderDialog';
 import './HealthPage.css';
 
-export function HealthPage() {
+interface HealthPageProps {
+  folders: FolderNode[];
+  onSourcesChanged: () => void;
+}
+
+interface MenuState {
+  x: number;
+  y: number;
+  actions: ContextMenuAction[];
+}
+
+export function HealthPage({ folders, onSourcesChanged }: HealthPageProps) {
   const [sources, setSources] = useState<SourceHealth[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [menu, setMenu] = useState<MenuState | null>(null);
+  const [moveDialogSource, setMoveDialogSource] = useState<{ id: string; title: string } | null>(null);
 
   function load() {
     api.getSourceHealth().then((r) => setSources(r.sources));
@@ -22,7 +37,10 @@ export function HealthPage() {
 
   async function handleRename(source: SourceHealth) {
     try {
-      if (await renameSourcePrompt(source.id, source.title)) load();
+      if (await renameSourcePrompt(source.id, source.title)) {
+        load();
+        onSourcesChanged();
+      }
     } catch (err) {
       reportError(err, 'Falha ao renomear fonte.');
     }
@@ -30,7 +48,10 @@ export function HealthPage() {
 
   async function handleDelete(source: SourceHealth) {
     try {
-      if (await deleteSourceConfirm(source.id, source.title)) load();
+      if (await deleteSourceConfirm(source.id, source.title)) {
+        load();
+        onSourcesChanged();
+      }
     } catch (err) {
       reportError(err, 'Falha ao excluir fonte.');
     }
@@ -42,6 +63,29 @@ export function HealthPage() {
     } catch (err) {
       reportError(err, 'Falha ao atualizar fonte.');
     }
+  }
+
+  async function handleMove(sourceId: string, folderId: string | null) {
+    try {
+      await api.updateSource(sourceId, { folderId });
+      onSourcesChanged();
+    } catch (err) {
+      reportError(err, 'Falha ao mover fonte.');
+    }
+  }
+
+  function openRowMenu(e: React.MouseEvent, source: SourceHealth) {
+    e.preventDefault();
+    setMenu({
+      x: e.clientX,
+      y: e.clientY,
+      actions: [
+        { label: 'Atualizar agora', onSelect: () => handleRefresh(source) },
+        { label: 'Renomear', onSelect: () => handleRename(source) },
+        { label: 'Mover para pasta...', onSelect: () => setMoveDialogSource({ id: source.id, title: source.title }) },
+        { label: 'Excluir', onSelect: () => handleDelete(source), danger: true },
+      ],
+    });
   }
 
   return (
@@ -63,7 +107,7 @@ export function HealthPage() {
         </thead>
         <tbody>
           {sources.map((s) => (
-            <tr key={s.id}>
+            <tr key={s.id} onContextMenu={(e) => openRowMenu(e, s)}>
               <td>{s.title}</td>
               <td>{s.type}</td>
               <td>
@@ -88,6 +132,20 @@ export function HealthPage() {
           ))}
         </tbody>
       </table>
+
+      {menu && <ContextMenu x={menu.x} y={menu.y} actions={menu.actions} onClose={() => setMenu(null)} />}
+
+      {moveDialogSource && (
+        <MoveToFolderDialog
+          folders={folders}
+          sourceTitle={moveDialogSource.title}
+          onClose={() => setMoveDialogSource(null)}
+          onPick={(folderId) => {
+            handleMove(moveDialogSource.id, folderId);
+            setMoveDialogSource(null);
+          }}
+        />
+      )}
     </div>
   );
 }

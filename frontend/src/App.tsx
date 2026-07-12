@@ -171,7 +171,7 @@ export default function App() {
         )}
 
         {page === 'settings' && <SettingsPage />}
-        {page === 'health' && <HealthPage />}
+        {page === 'health' && <HealthPage folders={folders} onSourcesChanged={loadFolders} />}
         {page === 'rules' && (
           <Placeholder title="Regras" description="Motor de regras SE/ENTÃO chega na Fase 2." />
         )}

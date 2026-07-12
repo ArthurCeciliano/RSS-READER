@@ -27,6 +27,14 @@
   color: var(--text-secondary);
 }
 
+.health-table tbody tr {
+  cursor: context-menu;
+}
+
+.health-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+
 .status-pill {
   padding: 2px 8px;
   border-radius: 10px;
