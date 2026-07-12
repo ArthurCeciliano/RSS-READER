@@ -21,6 +21,9 @@ const parser = new Parser({
     item: [
       ['media:content', 'mediaContent', { keepArray: true }],
       ['media:thumbnail', 'mediaThumbnail'],
+      // YouTube (and other Media RSS feeds) nest thumbnail/description/content
+      // inside <media:group> rather than as direct item children.
+      ['media:group', 'mediaGroup'],
     ],
   },
 });
@@ -31,12 +34,27 @@ function firstImageFromHtml(html: string | undefined): string | undefined {
   return match?.[1];
 }
 
+function mediaGroupThumbnail(mediaGroup: any): string | undefined {
+  return mediaGroup?.['media:thumbnail']?.[0]?.$?.url;
+}
+
+function mediaGroupDescription(mediaGroup: any): string | undefined {
+  const description = mediaGroup?.['media:description']?.[0];
+  return typeof description === 'string' ? description : undefined;
+}
+
 function extractImage(raw: any): string | undefined {
+  const fromGroup = mediaGroupThumbnail(raw.mediaGroup);
+  if (fromGroup) return fromGroup;
   if (raw.mediaThumbnail?.$?.url) return raw.mediaThumbnail.$.url;
   const mediaContent = raw.mediaContent?.[0]?.$?.url;
-  if (mediaContent) return mediaContent;
+  if (mediaContent && /\.(jpe?g|png|webp|gif)(\?|$)/i.test(mediaContent)) return mediaContent;
   if (raw.enclosure?.url && /^image\//.test(raw.enclosure.type ?? '')) return raw.enclosure.url;
   return firstImageFromHtml(raw['content:encoded'] ?? raw.content);
+}
+
+function extractSummary(raw: any): string | undefined {
+  return raw.contentSnippet ?? mediaGroupDescription(raw.mediaGroup);
 }
 
 /** Normalizes an rss-parser feed (RSS 2.0, Atom, RDF) into a flat item list. */
@@ -45,7 +63,7 @@ export function parseFeed(raw: { title?: string; items: unknown[] }): ParsedFeed
     guid: item.guid ?? item.id ?? undefined,
     link: item.link ?? undefined,
     title: item.title ?? '(untitled)',
-    summary: item.contentSnippet ?? undefined,
+    summary: extractSummary(item),
     contentHtml: item['content:encoded'] ?? item.content ?? undefined,
     imageUrl: extractImage(item),
     author: item.creator ?? item.author ?? undefined,

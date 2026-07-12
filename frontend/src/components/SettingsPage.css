@@ -49,6 +49,13 @@
   color: var(--text-secondary);
 }
 
+.settings-error {
+  color: var(--danger);
+  font-size: 12px;
+  margin: 4px 0 0;
+  width: 100%;
+}
+
 .import-progress {
   display: flex;
   align-items: center;

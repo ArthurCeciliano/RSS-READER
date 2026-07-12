@@ -34,6 +34,25 @@ const atom = `<?xml version="1.0" encoding="utf-8"?>
   </entry>
 </feed>`;
 
+// Mirrors the real structure returned by youtube.com/feeds/videos.xml — thumbnail
+// and description live inside <media:group>, not as direct entry children.
+const youtubeAtom = `<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns:yt="http://www.youtube.com/xml/schemas/2015" xmlns:media="http://search.yahoo.com/mrss/" xmlns="http://www.w3.org/2005/Atom">
+  <title>Some Channel</title>
+  <entry>
+    <id>yt:video:ABC123</id>
+    <title>A Great Video</title>
+    <link rel="alternate" href="https://www.youtube.com/watch?v=ABC123"/>
+    <published>2024-02-01T00:00:00+00:00</published>
+    <media:group>
+      <media:title>A Great Video</media:title>
+      <media:content url="https://www.youtube.com/v/ABC123?version=3" type="application/x-shockwave-flash" width="640" height="390"/>
+      <media:thumbnail url="https://i.ytimg.com/vi/ABC123/hqdefault.jpg" width="480" height="360"/>
+      <media:description>The real video description goes here.</media:description>
+    </media:group>
+  </entry>
+</feed>`;
+
 describe('parseFeedXml', () => {
   it('parses RSS 2.0 items with guid, link, image extraction from content:encoded', async () => {
     const feed = await parseFeedXml(rss2);
@@ -60,6 +79,17 @@ describe('parseFeedXml', () => {
     expect(feed.items[0]).toMatchObject({
       link: 'https://example.com/atom-entry',
       title: 'Atom entry',
+    });
+  });
+
+  it('extracts thumbnail and description nested inside <media:group> (YouTube feeds)', async () => {
+    const feed = await parseFeedXml(youtubeAtom);
+    expect(feed.title).toBe('Some Channel');
+    expect(feed.items[0]).toMatchObject({
+      title: 'A Great Video',
+      link: 'https://www.youtube.com/watch?v=ABC123',
+      imageUrl: 'https://i.ytimg.com/vi/ABC123/hqdefault.jpg',
+      summary: 'The real video description goes here.',
     });
   });
 });

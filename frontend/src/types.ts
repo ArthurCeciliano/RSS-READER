@@ -23,6 +23,7 @@ export interface ItemSourceRef {
   title: string;
   faviconUrl: string | null;
   siteUrl: string | null;
+  type: SourceType;
 }
 
 export interface FeedItem {

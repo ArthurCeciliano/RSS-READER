@@ -1,9 +1,15 @@
 import type { FastifyInstance } from 'fastify';
 import { prisma } from '../../../db/prisma.js';
-import { resolveSource, type HttpClient } from '../../sources/sourceResolver.js';
+import { resolveSource, type HttpClient, type ResolvedSource } from '../../sources/sourceResolver.js';
 import { getFeedRefreshQueue } from '../../queue/queue.js';
 import { enqueueManualRefresh } from '../../queue/producer.js';
 import { env } from '../../../config/env.js';
+
+const PRISMA_UNIQUE_CONSTRAINT = 'P2002';
+
+function isPrismaKnownError(err: unknown, code: string): boolean {
+  return typeof err === 'object' && err !== null && 'code' in err && (err as { code: unknown }).code === code;
+}
 
 const undiciHttp: HttpClient = {
   async getText(url: string) {
@@ -27,26 +33,45 @@ export async function sourcesRoutes(app: FastifyInstance) {
     return result;
   });
 
-  app.post<{ Body: { url: string; folderId?: string | null; title?: string } }>('/api/sources', async (req, reply) => {
-    const result = await resolveSource(req.body.url, undiciHttp);
-    if (result.kind !== 'resolved') return reply.code(422).send(result);
+  app.post<{
+    Body: { url?: string; resolved?: ResolvedSource; folderId?: string | null; title?: string };
+  }>('/api/sources', async (req, reply) => {
+    // Prefer a pre-resolved payload (the "Adicionar fonte" dialog already called
+    // /resolve once) so we don't re-hit the network a second time — important for
+    // YouTube @handle/Instagram/TikTok, where re-resolving can transiently fail
+    // even though the first resolution succeeded.
+    let source: ResolvedSource;
+    if (req.body.resolved) {
+      source = req.body.resolved;
+    } else {
+      if (!req.body.url) return reply.code(400).send({ error: 'url or resolved is required' });
+      const result = await resolveSource(req.body.url, undiciHttp);
+      if (result.kind !== 'resolved') return reply.code(422).send(result);
+      source = result.source;
+    }
 
-    const { source } = result;
     const isBridge = source.type === 'instagram' || source.type === 'tiktok';
-    const created = await prisma.source.create({
-      data: {
-        folderId: req.body.folderId ?? null,
-        title: req.body.title || source.title || source.identityUrl,
-        identityUrl: source.identityUrl,
-        feedUrl: source.feedUrl,
-        siteUrl: source.siteUrl,
-        type: source.type,
-        scanIntervalMinutes: isBridge ? env.minScanIntervalMinutesBridge : env.defaultScanIntervalMinutes,
-        maxEntries: env.defaultMaxEntries,
-        inactiveLimitDays: env.defaultInactiveLimitDays,
-      },
-    });
-    return reply.code(201).send(created);
+    try {
+      const created = await prisma.source.create({
+        data: {
+          folderId: req.body.folderId ?? null,
+          title: req.body.title || source.title || source.identityUrl,
+          identityUrl: source.identityUrl,
+          feedUrl: source.feedUrl,
+          siteUrl: source.siteUrl,
+          type: source.type,
+          scanIntervalMinutes: isBridge ? env.minScanIntervalMinutesBridge : env.defaultScanIntervalMinutes,
+          maxEntries: env.defaultMaxEntries,
+          inactiveLimitDays: env.defaultInactiveLimitDays,
+        },
+      });
+      return reply.code(201).send(created);
+    } catch (err) {
+      if (isPrismaKnownError(err, PRISMA_UNIQUE_CONSTRAINT)) {
+        return reply.code(409).send({ error: 'Essa fonte já foi adicionada.' });
+      }
+      throw err;
+    }
   });
 
   app.patch<{ Params: { id: string }; Body: Record<string, unknown> }>('/api/sources/:id', async (req) => {

@@ -32,23 +32,39 @@ export function ItemList({ items, viewMode, onOpenItem, onToggleStar, onLoadMore
             onClick={() => onOpenItem(item)}
           >
             {item.imageUrl && viewMode === 'cards' && (
-              <div className="item-card-image" style={{ backgroundImage: `url(${item.imageUrl})` }} />
+              <div className="item-card-image" style={{ backgroundImage: `url(${item.imageUrl})` }}>
+                {item.source.type === 'youtube' && <span className="play-overlay">▶</span>}
+              </div>
             )}
             <div className="item-card-body">
               <h3 className="item-card-title">{item.title}</h3>
               <ItemMeta item={item} />
               {item.summary && <p className="item-card-summary">{item.summary}</p>}
             </div>
-            <button
-              className={`star-btn ${item.isStarred ? 'starred' : ''}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleStar(item);
-              }}
-              title="Estrela"
-            >
-              ★
-            </button>
+            <div className="item-card-actions">
+              {item.link && (
+                <a
+                  className="external-link-btn"
+                  href={item.link}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  title="Abrir original em nova aba"
+                >
+                  ↗
+                </a>
+              )}
+              <button
+                className={`star-btn ${item.isStarred ? 'starred' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleStar(item);
+                }}
+                title="Estrela"
+              >
+                ★
+              </button>
+            </div>
           </article>
         ))}
         {hasMore && (

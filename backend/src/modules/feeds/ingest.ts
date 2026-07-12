@@ -49,6 +49,17 @@ function isBridgeType(type: string): boolean {
   return type === 'instagram' || type === 'tiktok';
 }
 
+/**
+ * Sources created by pasting a bare channel/profile URL (module 1) or an OPML
+ * entry that only had Feedbro's generic "RSS" placeholder never get a real
+ * display name. Once we've actually fetched the feed, its own <title> is the
+ * best name available, so backfill it — but don't clobber a name the user (or
+ * a well-formed OPML) already set on purpose.
+ */
+function looksLikePlaceholderTitle(source: Source): boolean {
+  return !source.title || source.title === source.identityUrl || source.title === 'RSS';
+}
+
 async function fetchWithTimeout(url: string, state: { etag?: string | null; lastModified?: string | null }, timeoutMs: number) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -122,6 +133,7 @@ export async function ingestSource(source: Source, deps: IngestDeps): Promise<In
           lastError: null,
           scanIntervalMinutes: adaptiveMinutes,
           nextFetchAt: computeNextFetchAt(now(), adaptiveMinutes, 0),
+          ...(feed.title && looksLikePlaceholderTitle(source) ? { title: feed.title } : {}),
         },
       });
       return { sourceId: source.id, outcome: 'updated', newItemCount };
@@ -160,21 +172,22 @@ async function persistItems(prisma: PrismaClient, source: Source, items: ParsedF
       where: { sourceId_dedupeHash: { sourceId: source.id, dedupeHash } },
       select: { id: true },
     });
-    if (existing) continue;
-    await prisma.item.create({
-      data: {
-        sourceId: source.id,
-        guid: item.guid,
-        link: item.link,
-        dedupeHash,
-        title: item.title,
-        summary: item.summary,
-        contentHtml: item.contentHtml,
-        imageUrl: item.imageUrl,
-        author: item.author,
-        publishedAt: item.publishedAt,
-      },
-    });
+    const fields = {
+      link: item.link,
+      title: item.title,
+      summary: item.summary,
+      contentHtml: item.contentHtml,
+      imageUrl: item.imageUrl,
+      author: item.author,
+      publishedAt: item.publishedAt,
+    };
+    if (existing) {
+      // Refresh metadata on re-fetch (e.g. a parser fix backfilling a thumbnail
+      // that was missing before) without touching user state like isRead/isStarred.
+      await prisma.item.update({ where: { id: existing.id }, data: fields });
+      continue;
+    }
+    await prisma.item.create({ data: { sourceId: source.id, guid: item.guid, dedupeHash, ...fields } });
     created += 1;
   }
   return created;

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { api } from '../api/client';
+import { api, ApiError } from '../api/client';
 import './SettingsPage.css';
 
 type Settings = Record<string, unknown>;
@@ -7,7 +7,12 @@ type Settings = Record<string, unknown>;
 export function SettingsPage() {
   const [settings, setSettings] = useState<Settings>({});
   const [dirty, setDirty] = useState<Settings>({});
-  const [importStatus, setImportStatus] = useState<{ processed: number; total: number; done: boolean } | null>(null);
+  const [importStatus, setImportStatus] = useState<{
+    processed: number;
+    total: number;
+    done: boolean;
+    error?: string;
+  } | null>(null);
   const [skipExisting, setSkipExisting] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -27,12 +32,23 @@ export function SettingsPage() {
   }
 
   async function handleImportFile(file: File) {
-    const { jobId } = await api.importOpml(file, skipExisting);
     setImportStatus({ processed: 0, total: 0, done: false });
+    let jobId: string;
+    try {
+      ({ jobId } = await api.importOpml(file, skipExisting));
+    } catch (err) {
+      setImportStatus({ processed: 0, total: 0, done: true, error: err instanceof ApiError ? err.message : 'Falha ao enviar o arquivo.' });
+      return;
+    }
     const poll = setInterval(async () => {
-      const job = await api.getImportJob(jobId);
-      setImportStatus({ processed: job.processed, total: job.total, done: job.status !== 'running' });
-      if (job.status !== 'running') clearInterval(poll);
+      try {
+        const job = await api.getImportJob(jobId);
+        setImportStatus({ processed: job.processed, total: job.total, done: job.status !== 'running', error: job.error });
+        if (job.status !== 'running') clearInterval(poll);
+      } catch (err) {
+        setImportStatus({ processed: 0, total: 0, done: true, error: err instanceof ApiError ? err.message : 'Falha ao consultar o progresso.' });
+        clearInterval(poll);
+      }
     }, 500);
   }
 
@@ -69,8 +85,9 @@ export function SettingsPage() {
                   />
                 </div>
                 <span>
-                  {importStatus.processed}/{importStatus.total} {importStatus.done ? '— concluído' : ''}
+                  {importStatus.processed}/{importStatus.total} {importStatus.done && !importStatus.error ? '— concluído' : ''}
                 </span>
+                {importStatus.error && <p className="settings-error">Erro: {importStatus.error}</p>}
               </div>
             )}
           </div>

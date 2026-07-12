@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { api } from '../api/client';
+import { api, ApiError } from '../api/client';
 import type { FolderNode, ResolveSourceResponse } from '../types';
 import './Dialog.css';
 
@@ -24,22 +24,41 @@ export function AddSourceDialog({ folders, onClose, onAdded }: AddSourceDialogPr
     try {
       const res = await api.resolveSource(url.trim());
       setResult(res);
-    } catch {
-      setError('Não foi possível resolver essa URL. Verifique sua conexão com o backend.');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Não foi possível resolver essa URL. Verifique sua conexão com o backend.');
     } finally {
       setLoading(false);
     }
   }
 
-  async function handleConfirm(feedUrl?: string) {
+  // Reuses the already-resolved source (from handleResolve) instead of asking the
+  // backend to re-resolve the raw URL — re-resolving a YouTube handle or bridge
+  // profile means another live network fetch that can transiently fail even
+  // though the first resolution just succeeded.
+  async function handleConfirmResolved() {
+    if (result?.kind !== 'resolved') return;
     setLoading(true);
     setError(null);
     try {
-      await api.createSource({ url: feedUrl ?? url.trim(), folderId: folderId || null });
+      await api.createSource({ resolved: result.source, folderId: folderId || null });
       onAdded();
       onClose();
-    } catch {
-      setError('Falha ao adicionar a fonte.');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Falha ao adicionar a fonte.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleConfirmCandidate(feedUrl: string) {
+    setLoading(true);
+    setError(null);
+    try {
+      await api.createSource({ url: feedUrl, folderId: folderId || null });
+      onAdded();
+      onClose();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Falha ao adicionar a fonte.');
     } finally {
       setLoading(false);
     }
@@ -85,7 +104,7 @@ export function AddSourceDialog({ folders, onClose, onAdded }: AddSourceDialogPr
               Tipo: <strong>{result.source.type}</strong>
               {result.source.title && <> — {result.source.title}</>}
             </p>
-            <button className="primary" onClick={() => handleConfirm()} disabled={loading}>
+            <button className="primary" onClick={handleConfirmResolved} disabled={loading}>
               Adicionar
             </button>
           </div>
@@ -95,7 +114,7 @@ export function AddSourceDialog({ folders, onClose, onAdded }: AddSourceDialogPr
           <div className="dialog-choice">
             <p>Múltiplos feeds encontrados, escolha um:</p>
             {result.candidates.map((c) => (
-              <button key={c.feedUrl} className="choice-item" onClick={() => handleConfirm(c.feedUrl)}>
+              <button key={c.feedUrl} className="choice-item" onClick={() => handleConfirmCandidate(c.feedUrl)}>
                 {c.title}
               </button>
             ))}

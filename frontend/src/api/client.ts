@@ -2,6 +2,7 @@ import type {
   FeedItem,
   FolderNode,
   ItemFilter,
+  ResolvedSourcePayload,
   ResolveSourceResponse,
   SortOrder,
   SourceHealth,
@@ -12,13 +13,22 @@ import type {
 // serves the frontend from the same origin. VITE_API_URL still overrides both.
 const BASE_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? 'http://localhost:3001' : '');
 
+export class ApiError extends Error {}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     ...init,
     headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
   });
   if (!res.ok && res.status !== 202 && res.status !== 422) {
-    throw new Error(`${init?.method ?? 'GET'} ${path} failed: ${res.status}`);
+    let message = `${init?.method ?? 'GET'} ${path} failed: ${res.status}`;
+    try {
+      const body = await res.json();
+      if (body?.error) message = body.error;
+    } catch {
+      // response wasn't JSON — keep the generic message
+    }
+    throw new ApiError(message);
   }
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
@@ -56,8 +66,12 @@ export const api = {
   resolveSource: (url: string) =>
     request<ResolveSourceResponse>('/api/sources/resolve', { method: 'POST', body: JSON.stringify({ url }) }),
 
-  createSource: (payload: { url: string; folderId?: string | null; title?: string }) =>
-    request('/api/sources', { method: 'POST', body: JSON.stringify(payload) }),
+  createSource: (payload: {
+    url?: string;
+    resolved?: ResolvedSourcePayload['source'];
+    folderId?: string | null;
+    title?: string;
+  }) => request('/api/sources', { method: 'POST', body: JSON.stringify(payload) }),
 
   refreshSource: (id: string) => request(`/api/sources/${id}/refresh`, { method: 'POST' }),
 
@@ -70,12 +84,15 @@ export const api = {
     const form = new FormData();
     form.append('file', file);
     const res = await fetch(`${BASE_URL}/api/opml/import?skipExisting=${skipExisting}`, { method: 'POST', body: form });
-    return res.json() as Promise<{ jobId: string }>;
+    const body = await res.json();
+    if (!res.ok) throw new ApiError(body?.error ?? `import failed: ${res.status}`);
+    return body as { jobId: string };
   },
 
-  getImportJob: (jobId: string) => request<{ status: string; processed: number; total: number; report?: unknown }>(
-    `/api/opml/import/${jobId}`,
-  ),
+  getImportJob: (jobId: string) =>
+    request<{ status: string; processed: number; total: number; report?: unknown; error?: string }>(
+      `/api/opml/import/${jobId}`,
+    ),
 
   exportOpmlUrl: () => `${BASE_URL}/api/opml/export`,
 

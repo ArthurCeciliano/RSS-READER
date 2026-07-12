@@ -31,7 +31,7 @@ export async function itemsRoutes(app: FastifyInstance) {
 
     const items = await prisma.item.findMany({
       where,
-      include: { source: { select: { title: true, faviconUrl: true, siteUrl: true } } },
+      include: { source: { select: { title: true, faviconUrl: true, siteUrl: true, type: true } } },
       orderBy: { publishedAt: sort === 'oldest' ? 'asc' : 'desc' },
       take: take + 1,
       ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),

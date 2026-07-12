@@ -23,6 +23,15 @@ await app.register(multipart);
 
 app.get('/api/health', async () => ({ status: 'ok' }));
 
+// Surface a JSON error message instead of an opaque 500 with no body — the
+// frontend shows this text directly, which matters a lot when debugging a
+// deployed instance where you can't easily see server logs.
+app.setErrorHandler((error, request, reply) => {
+  request.log.error(error);
+  const statusCode = error.statusCode ?? 500;
+  reply.code(statusCode).send({ error: error.message || 'internal error' });
+});
+
 await app.register(foldersRoutes);
 await app.register(sourcesRoutes);
 await app.register(itemsRoutes);

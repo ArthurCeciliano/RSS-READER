@@ -1,6 +1,7 @@
 import DOMPurify from 'dompurify';
 import type { FeedItem } from '../types';
 import { relativeTime } from '../utils/relativeTime';
+import { buildYouTubeEmbedUrl, extractYouTubeVideoId } from '../utils/youtube';
 import './Reader.css';
 
 interface ReaderProps {
@@ -16,6 +17,7 @@ export function Reader({ item, onClose, onToggleStar, onNext, onPrev }: ReaderPr
   const clean = DOMPurify.sanitize(html, {
     FORBID_TAGS: ['script', 'object', 'applet', 'iframe', 'embed'],
   });
+  const youtubeVideoId = item.source.type === 'youtube' ? extractYouTubeVideoId(item.link) : null;
 
   return (
     <div className="reader-overlay" onClick={onClose}>
@@ -47,7 +49,18 @@ export function Reader({ item, onClose, onToggleStar, onNext, onPrev }: ReaderPr
             {item.author && <span> · {item.author}</span>}
             <span> · {relativeTime(item.publishedAt ?? item.createdAt)}</span>
           </div>
-          {item.imageUrl && <img className="reader-hero-image" src={item.imageUrl} alt="" />}
+          {youtubeVideoId ? (
+            <div className="reader-video-embed">
+              <iframe
+                src={buildYouTubeEmbedUrl(youtubeVideoId)}
+                title={item.title}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          ) : (
+            item.imageUrl && <img className="reader-hero-image" src={item.imageUrl} alt="" />
+          )}
           <div className="reader-body" dangerouslySetInnerHTML={{ __html: clean }} />
         </div>
       </div>
