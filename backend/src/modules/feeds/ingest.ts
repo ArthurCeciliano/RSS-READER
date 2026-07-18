@@ -6,6 +6,7 @@ import { computeDedupeHash } from './dedupe.js';
 import { computeAdaptiveIntervalMinutes, computeNextFetchAt, applyJitter } from '../queue/scheduler.js';
 import { withDomainLock, DomainBusyError } from '../queue/domainLock.js';
 import { buildBridgeCandidateUrls } from '../sources/bridgeResolver.js';
+import { extractInstagramUsername } from '../sources/instagramUsername.js';
 import { collectActionsForContext, type RuleContext } from '../rules/ruleEngine.js';
 import { applyActionsToItem } from '../rules/applyRules.js';
 import { env } from '../../config/env.js';
@@ -25,7 +26,7 @@ export interface IngestResult {
 
 function candidateFeedUrls(source: Source): string[] {
   if (source.type === 'instagram') {
-    const username = new URL(source.identityUrl).pathname.replace(/^\/|\/$/g, '');
+    const username = extractInstagramUsername(source.identityUrl);
     return buildBridgeCandidateUrls(username, {
       instances: env.instagramBridgeInstances,
       routeTemplate: env.instagramBridgeRoute,
@@ -111,32 +112,10 @@ export async function ingestSource(source: Source, deps: IngestDeps): Promise<In
       }
 
       const feed = await parseFeedXml(result.body);
-      const newItemCount = await persistItems(deps.prisma, source, feed.items);
-      await enforceRetention(deps.prisma, source);
-
-      const recentDates = feed.items
-        .map((i) => i.publishedAt)
-        .filter((d): d is Date => d instanceof Date)
-        .sort((a, b) => b.getTime() - a.getTime());
-      const intervalOptions = isBridgeType(source.type)
-        ? { minMinutes: env.minScanIntervalMinutesBridge, maxMinutes: env.maxScanIntervalMinutes, defaultMinutes: source.scanIntervalMinutes }
-        : { minMinutes: env.minScanIntervalMinutesNative, maxMinutes: env.maxScanIntervalMinutes, defaultMinutes: source.scanIntervalMinutes };
-      const adaptiveMinutes = computeAdaptiveIntervalMinutes(recentDates, intervalOptions);
-
-      await deps.prisma.source.update({
-        where: { id: source.id },
-        data: {
-          etag: result.etag,
-          lastModified: result.lastModified,
-          lastFetchedAt: now(),
-          lastSuccessAt: now(),
-          consecutiveFails: 0,
-          status: 'ok',
-          lastError: null,
-          scanIntervalMinutes: adaptiveMinutes,
-          nextFetchAt: computeNextFetchAt(now(), adaptiveMinutes, 0),
-          ...(feed.title && looksLikePlaceholderTitle(source) ? { title: feed.title } : {}),
-        },
+      const { newItemCount } = await finalizeSuccessfulIngest(deps.prisma, source, feed.items, {
+        feedTitle: feed.title,
+        extraSourceFields: { etag: result.etag, lastModified: result.lastModified },
+        now,
       });
       return { sourceId: source.id, outcome: 'updated', newItemCount };
     } catch (err) {
@@ -164,6 +143,62 @@ export async function ingestSource(source: Source, deps: IngestDeps): Promise<In
     },
   });
   return { sourceId: source.id, outcome: 'failed', newItemCount: 0 };
+}
+
+export interface FinalizeIngestOptions {
+  /** Only used by the RSS/bridge fetch path to backfill a placeholder title from the parsed feed's <title>. */
+  feedTitle?: string;
+  /** Fetch-path-only fields (etag/lastModified) that don't apply to the extension-push path. */
+  extraSourceFields?: Partial<{ etag: string | null; lastModified: string | null }>;
+  now?: () => Date;
+}
+
+export interface FinalizeIngestResult {
+  newItemCount: number;
+}
+
+/**
+ * Shared "successful ingest" bookkeeping: dedupe + persist items (firing
+ * rules only for genuinely new ones), enforce retention, optionally backfill
+ * a placeholder title, and reschedule health/backoff fields. Used by both the
+ * BullMQ fetch path (ingestSource, above) and the extension-push path (POST
+ * /api/extension/instagram/:sourceId/items) so storage/dedup/rule-firing/
+ * retention/rescheduling logic never drifts between entry points.
+ */
+export async function finalizeSuccessfulIngest(
+  prisma: PrismaClient,
+  source: Source,
+  items: ParsedFeedItem[],
+  opts?: FinalizeIngestOptions,
+): Promise<FinalizeIngestResult> {
+  const now = opts?.now ?? (() => new Date());
+  const newItemCount = await persistItems(prisma, source, items);
+  await enforceRetention(prisma, source);
+
+  const recentDates = items
+    .map((i) => i.publishedAt)
+    .filter((d): d is Date => d instanceof Date)
+    .sort((a, b) => b.getTime() - a.getTime());
+  const intervalOptions = isBridgeType(source.type)
+    ? { minMinutes: env.minScanIntervalMinutesBridge, maxMinutes: env.maxScanIntervalMinutes, defaultMinutes: source.scanIntervalMinutes }
+    : { minMinutes: env.minScanIntervalMinutesNative, maxMinutes: env.maxScanIntervalMinutes, defaultMinutes: source.scanIntervalMinutes };
+  const adaptiveMinutes = computeAdaptiveIntervalMinutes(recentDates, intervalOptions);
+
+  await prisma.source.update({
+    where: { id: source.id },
+    data: {
+      ...opts?.extraSourceFields,
+      lastFetchedAt: now(),
+      lastSuccessAt: now(),
+      consecutiveFails: 0,
+      status: 'ok',
+      lastError: null,
+      scanIntervalMinutes: adaptiveMinutes,
+      nextFetchAt: computeNextFetchAt(now(), adaptiveMinutes, 0),
+      ...(opts?.feedTitle && looksLikePlaceholderTitle(source) ? { title: opts.feedTitle } : {}),
+    },
+  });
+  return { newItemCount };
 }
 
 async function persistItems(prisma: PrismaClient, source: Source, items: ParsedFeedItem[]): Promise<number> {

@@ -17,6 +17,11 @@ import type {
 // serves the frontend from the same origin. VITE_API_URL still overrides both.
 const BASE_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? 'http://localhost:3001' : '');
 
+// Surfaced in Settings so the user can paste the reachable API URL into the
+// browser extension's Options page (extension/) — it runs standalone, outside
+// this app's own origin, so it can't infer the URL any other way.
+export const API_BASE_URL = BASE_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+
 export class ApiError extends Error {}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -120,6 +125,11 @@ export const api = {
 
   updateSettings: (patch: Record<string, unknown>) =>
     request('/api/settings', { method: 'PUT', body: JSON.stringify(patch) }),
+
+  getExtensionToken: () => request<{ token: string }>('/api/settings/extension-token'),
+
+  regenerateExtensionToken: () =>
+    request<{ token: string }>('/api/settings/extension-token/regenerate', { method: 'POST' }),
 
   getStats: (days = 30) =>
     request<{

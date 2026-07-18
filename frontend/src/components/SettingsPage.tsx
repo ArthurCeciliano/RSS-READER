@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { api, ApiError } from '../api/client';
+import { api, ApiError, API_BASE_URL } from '../api/client';
 import './SettingsPage.css';
 
 type Settings = Record<string, unknown>;
@@ -15,10 +15,23 @@ export function SettingsPage() {
   } | null>(null);
   const [skipExisting, setSkipExisting] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [extensionToken, setExtensionToken] = useState<string | null>(null);
 
   useEffect(() => {
     api.getSettings().then(setSettings).catch(() => setSettings({}));
   }, []);
+
+  useEffect(() => {
+    api.getExtensionToken().then((r) => setExtensionToken(r.token)).catch(() => {});
+  }, []);
+
+  async function regenerateExtensionToken() {
+    if (!confirm('Isso invalida o token usado pela extensão já instalada — ela vai parar de sincronizar até você colar o novo token nas Opções dela. Continuar?')) {
+      return;
+    }
+    const { token } = await api.regenerateExtensionToken();
+    setExtensionToken(token);
+  }
 
   function set(key: string, value: unknown) {
     setSettings((s) => ({ ...s, [key]: value }));
@@ -91,6 +104,26 @@ export function SettingsPage() {
               </div>
             )}
           </div>
+        </div>
+      </section>
+
+      <section className="settings-section">
+        <h2>Extensão do navegador — Instagram</h2>
+        <div className="settings-grid-actions">
+          <div className="settings-block">
+            <span className="settings-block-label">URL da API (cole nas Opções da extensão)</span>
+            <input type="text" readOnly value={API_BASE_URL} onFocus={(e) => e.target.select()} style={{ width: '100%' }} />
+          </div>
+          <div className="settings-block">
+            <span className="settings-block-label">Token (cole nas Opções da extensão)</span>
+            <input type="text" readOnly value={extensionToken ?? '…'} onFocus={(e) => e.target.select()} style={{ width: '100%' }} />
+            <button onClick={regenerateExtensionToken}>Gerar novo token</button>
+          </div>
+          <p className="settings-error" style={{ color: 'var(--text-secondary)' }}>
+            Instale a extensão "RSS Reader - Instagram Bridge", abra as Opções dela e cole a URL e o token acima. Ela vai
+            buscar os perfis do Instagram usando sua sessão logada no navegador e enviar pra cá — só funciona enquanto o
+            navegador está aberto.
+          </p>
         </div>
       </section>
 

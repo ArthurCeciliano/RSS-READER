@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../../../db/prisma.js';
+import { getOrCreateExtensionToken, regenerateExtensionToken } from '../extensionAuth.js';
 
 const DEFAULT_SETTINGS: Record<string, unknown> = {
   theme: 'dark',
@@ -48,4 +49,10 @@ export async function settingsRoutes(app: FastifyInstance) {
     );
     return { updated: entries.length };
   });
+
+  // Kept separate from the generic GET/PUT /api/settings blob above so a
+  // generic settings PUT can never accidentally overwrite the extension token.
+  app.get('/api/settings/extension-token', async () => ({ token: await getOrCreateExtensionToken(prisma) }));
+
+  app.post('/api/settings/extension-token/regenerate', async () => ({ token: await regenerateExtensionToken(prisma) }));
 }

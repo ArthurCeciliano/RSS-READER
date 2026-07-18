@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <title>RSS Reader - Instagram Bridge</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #16161c;
+        color: #e4e4e7;
+        width: 300px;
+        padding: 14px;
+        margin: 0;
+      }
+      h1 {
+        font-size: 13px;
+        margin: 0 0 10px;
+      }
+      button {
+        width: 100%;
+        background: #6d5ce7;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        padding: 8px;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      #lastRun {
+        margin-top: 10px;
+        font-size: 11.5px;
+        color: #a1a1aa;
+      }
+      ul {
+        list-style: none;
+        padding: 0;
+        margin: 8px 0 0;
+        font-size: 12px;
+        max-height: 180px;
+        overflow-y: auto;
+      }
+      li {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 3px 0;
+        border-bottom: 1px solid #26262f;
+      }
+      .ok {
+        color: #4ade80;
+      }
+      .error {
+        color: #f87171;
+      }
+      a {
+        color: #a1a1ff;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>RSS Reader - Instagram Bridge</h1>
+    <button id="syncNow">Sincronizar agora</button>
+    <div id="lastRun">carregando…</div>
+    <ul id="results"></ul>
+    <p style="margin-top: 10px; font-size: 11px"><a href="options.html" target="_blank">Opções</a></p>
+    <script src="popup.js"></script>
+  </body>
+</html>
