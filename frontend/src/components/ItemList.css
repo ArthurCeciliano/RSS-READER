@@ -33,8 +33,9 @@
 
 .item-card-image {
   position: relative;
-  height: 140px;
-  background-size: cover;
+  aspect-ratio: 1 / 1;
+  background-size: contain;
+  background-repeat: no-repeat;
   background-position: center;
   background-color: var(--bg-hover);
 }
