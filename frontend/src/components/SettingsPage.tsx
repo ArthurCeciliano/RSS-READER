@@ -16,6 +16,7 @@ export function SettingsPage() {
   const [skipExisting, setSkipExisting] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [extensionToken, setExtensionToken] = useState<string | null>(null);
+  const [extensionIdSaved, setExtensionIdSaved] = useState(false);
 
   useEffect(() => {
     api.getSettings().then(setSettings).catch(() => setSettings({}));
@@ -31,6 +32,12 @@ export function SettingsPage() {
     }
     const { token } = await api.regenerateExtensionToken();
     setExtensionToken(token);
+  }
+
+  async function saveExtensionId() {
+    await api.updateSettings({ instagramExtensionId: settings.instagramExtensionId ?? '' });
+    setExtensionIdSaved(true);
+    setTimeout(() => setExtensionIdSaved(false), 2000);
   }
 
   function set(key: string, value: unknown) {
@@ -127,9 +134,8 @@ export function SettingsPage() {
               onChange={(e) => set('instagramExtensionId', e.target.value)}
               style={{ width: '100%' }}
             />
-            <button onClick={() => api.updateSettings({ instagramExtensionId: settings.instagramExtensionId ?? '' })}>
-              Salvar ID
-            </button>
+            <button onClick={saveExtensionId}>Salvar ID</button>
+            {extensionIdSaved && <span style={{ color: 'var(--accent)', fontSize: 12.5 }}>Salvo!</span>}
           </div>
           <p className="settings-error" style={{ color: 'var(--text-secondary)' }}>
             Instale a extensão "RSS Reader - Instagram Bridge", abra as Opções dela e cole a URL e o token acima. Ela vai
