@@ -81,6 +81,15 @@ async function fetchWithTimeout(url: string, state: { etag?: string | null; last
  * "falha nunca apaga itens já ingeridos" guarantee lives here.
  */
 export async function ingestSource(source: Source, deps: IngestDeps): Promise<IngestResult> {
+  // Instagram is fetched exclusively by the browser extension now (see
+  // modules/api/routes/extension.ts) — the server-side RSSHub bridge is
+  // reliably blocked from the VPS's datacenter IP. No-op here regardless of
+  // trigger (scheduled tick or a manual "Atualizar agora" click) instead of
+  // spending a doomed fetch attempt and flipping the source to failing.
+  if (source.type === 'instagram') {
+    return { sourceId: source.id, outcome: 'not_modified', newItemCount: 0 };
+  }
+
   const now = deps.now ?? (() => new Date());
   const random = deps.random ? deps.random() : Math.random();
   const candidates = candidateFeedUrls(source);
