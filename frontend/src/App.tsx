@@ -18,6 +18,15 @@ const NOTIFICATION_POLL_MS = 20_000;
 
 type PageView = 'reader-shell' | 'settings' | 'health' | 'rules' | 'tags' | 'stats';
 
+// Minimal shape of the extension messaging API this app talks to (see
+// extension/manifest.json's externally_connectable) — not a full chrome typings install.
+interface ChromeRuntime {
+  runtime: {
+    sendMessage: (extensionId: string, message: unknown, callback: (response: unknown) => void) => void;
+    lastError?: { message: string };
+  };
+}
+
 export default function App() {
   const [folders, setFolders] = useState<FolderNode[]>([]);
   const [scope, setScope] = useState<SelectedScope>({ kind: 'all', label: 'Todos os itens' });
@@ -33,6 +42,8 @@ export default function App() {
   const [page, setPage] = useState<PageView>('reader-shell');
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [instagramExtensionId, setInstagramExtensionId] = useState<string | null>(null);
+  const [syncingInstagram, setSyncingInstagram] = useState(false);
 
   const loadFolders = useCallback(() => {
     api.getFolders().then((r) => setFolders(r.folders)).catch(() => {});
@@ -63,6 +74,13 @@ export default function App() {
   useEffect(() => {
     loadFolders();
   }, [loadFolders]);
+
+  useEffect(() => {
+    api
+      .getSettings()
+      .then((s) => setInstagramExtensionId((s.instagramExtensionId as string) || null))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     requestNotificationPermission();
@@ -144,6 +162,28 @@ export default function App() {
     }
   }
 
+  function handleSyncInstagram() {
+    const chromeApi = (window as unknown as { chrome?: ChromeRuntime }).chrome;
+    if (!chromeApi?.runtime?.sendMessage) {
+      alert('Extensão não detectada neste navegador (precisa do Chrome com a extensão instalada).');
+      return;
+    }
+    if (!instagramExtensionId) {
+      alert('Configure o "ID da extensão" em Configurações → Extensão do navegador primeiro.');
+      return;
+    }
+    setSyncingInstagram(true);
+    chromeApi.runtime.sendMessage(instagramExtensionId, { type: 'sync-now' }, () => {
+      setSyncingInstagram(false);
+      if (chromeApi.runtime.lastError) {
+        alert(`Não consegui falar com a extensão: ${chromeApi.runtime.lastError.message}`);
+        return;
+      }
+      loadItems();
+      loadFolders();
+    });
+  }
+
   function handleSelectScope(next: SelectedScope) {
     setScope(next);
     setSearchQuery('');
@@ -200,6 +240,8 @@ export default function App() {
               onMarkAllRead={handleMarkAllRead}
               onRefresh={handleRefresh}
               refreshing={refreshing}
+              onSyncInstagram={handleSyncInstagram}
+              syncingInstagram={syncingInstagram}
               searchQuery={searchQuery}
               onSearchQueryChange={setSearchQuery}
             />

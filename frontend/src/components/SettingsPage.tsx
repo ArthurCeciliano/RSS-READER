@@ -119,10 +119,23 @@ export function SettingsPage() {
             <input type="text" readOnly value={extensionToken ?? '…'} onFocus={(e) => e.target.select()} style={{ width: '100%' }} />
             <button onClick={regenerateExtensionToken}>Gerar novo token</button>
           </div>
+          <div className="settings-block">
+            <span className="settings-block-label">ID da extensão (chrome://extensions → card da extensão → campo "ID")</span>
+            <input
+              type="text"
+              value={val('instagramExtensionId', '') as string}
+              onChange={(e) => set('instagramExtensionId', e.target.value)}
+              style={{ width: '100%' }}
+            />
+            <button onClick={() => api.updateSettings({ instagramExtensionId: settings.instagramExtensionId ?? '' })}>
+              Salvar ID
+            </button>
+          </div>
           <p className="settings-error" style={{ color: 'var(--text-secondary)' }}>
             Instale a extensão "RSS Reader - Instagram Bridge", abra as Opções dela e cole a URL e o token acima. Ela vai
             buscar os perfis do Instagram usando sua sessão logada no navegador e enviar pra cá — só funciona enquanto o
-            navegador está aberto.
+            navegador está aberto. Com o ID da extensão salvo aqui, o botão "◈" na barra superior do app também dispara
+            uma sincronização direto, sem precisar abrir o popup da extensão.
           </p>
         </div>
       </section>

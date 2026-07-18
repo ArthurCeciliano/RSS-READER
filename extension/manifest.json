@@ -3,7 +3,7 @@
   "name": "RSS Reader - Instagram Bridge",
   "version": "1.0.0",
   "description": "Fetches Instagram posts for profiles imported into your self-hosted RSS Reader, using your own logged-in browser session, and pushes them to your server.",
-  "permissions": ["cookies", "alarms", "storage"],
+  "permissions": ["alarms", "storage", "scripting", "tabs"],
   "host_permissions": ["https://www.instagram.com/*"],
   "optional_host_permissions": ["http://*/*", "https://*/*"],
   "background": {
@@ -14,5 +14,8 @@
   "action": {
     "default_popup": "popup.html",
     "default_title": "RSS Reader - Instagram Bridge"
+  },
+  "externally_connectable": {
+    "matches": ["http://179.197.226.119:8080/*"]
   }
 }

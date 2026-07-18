@@ -1,10 +1,88 @@
 const ALARM_NAME = 'ig-sync';
 const DEFAULT_SYNC_INTERVAL_MINUTES = 25;
-const IG_APP_ID = '936619743392459';
-const IG_ASBD_ID = '359341';
+const TAB_LOAD_TIMEOUT_MS = 15000;
+const GRID_POLL_TIMEOUT_MS = 8000;
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function waitForTabComplete(tabId) {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      chrome.tabs.onUpdated.removeListener(listener);
+      resolve();
+    }, TAB_LOAD_TIMEOUT_MS);
+    function listener(updatedTabId, changeInfo) {
+      if (updatedTabId === tabId && changeInfo.status === 'complete') {
+        clearTimeout(timer);
+        chrome.tabs.onUpdated.removeListener(listener);
+        resolve();
+      }
+    }
+    chrome.tabs.onUpdated.addListener(listener);
+  });
+}
+
+/**
+ * Runs INSIDE a real instagram.com tab via chrome.scripting.executeScript.
+ * Calling Instagram's own web_profile_info endpoint ourselves — even from
+ * this exact same-origin tab, with the real session — still got 429'd, while
+ * the page's own normal render (doing the equivalent call internally) worked
+ * every time in the same browser. So instead of guessing at whatever makes
+ * that internal call "trusted", this reads the posts straight out of the
+ * already-rendered grid (post links + each thumbnail's alt text) once the
+ * page has loaded — no extra network request of our own at all.
+ */
+function scrapeProfileGridInPage(username, pollTimeoutMs) {
+  return (async () => {
+    try {
+      function collectPosts() {
+        const seen = new Set();
+        const posts = [];
+        // Post links can render as either "/p/{shortcode}/" or, inside a
+        // profile's own grid, "/{username}/p/{shortcode}/" — match "/p/" or
+        // "/reel/" anywhere in the path instead of anchoring at the start.
+        document.querySelectorAll('a[href*="/p/"], a[href*="/reel/"]').forEach((a) => {
+          const match = a.getAttribute('href')?.match(/\/(p|reel)\/([A-Za-z0-9_-]+)/);
+          if (!match) return;
+          const shortcode = match[2];
+          if (seen.has(shortcode)) return;
+          seen.add(shortcode);
+          const img = a.querySelector('img');
+          posts.push({ shortcode, alt: img?.getAttribute('alt') || '', imageUrl: img?.src || undefined });
+        });
+        return posts;
+      }
+
+      // The grid renders client-side a moment after navigation finishes; poll briefly.
+      const deadline = Date.now() + pollTimeoutMs;
+      let posts = collectPosts();
+      while (posts.length === 0 && Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        posts = collectPosts();
+      }
+      if (posts.length === 0) {
+        return { error: 'no posts found in the rendered page (private/empty profile, or the grid did not load in time)' };
+      }
+
+      const items = posts.map((p) => {
+        const caption = p.alt || '';
+        const firstLine = caption ? caption.split('\n', 1)[0] : '';
+        return {
+          guid: p.shortcode,
+          link: `https://www.instagram.com/p/${p.shortcode}/`,
+          title: firstLine ? firstLine.slice(0, 120) : '(sem legenda)',
+          summary: caption,
+          imageUrl: p.imageUrl,
+          author: username,
+        };
+      });
+      return { items };
+    } catch (err) {
+      return { error: String(err?.message ?? err) };
+    }
+  })();
 }
 
 async function getConfig() {
@@ -29,49 +107,21 @@ async function fetchDueSources(apiBaseUrl, apiToken) {
   return sources;
 }
 
-function firstLine(text, maxLength = 120) {
-  if (!text) return '(sem legenda)';
-  const line = text.split('\n', 1)[0];
-  return line.length > maxLength ? `${line.slice(0, maxLength)}…` : line;
-}
-
-/**
- * Hits the same undocumented endpoint RSSHub's own instagram/web-api route
- * uses (lib/routes/instagram/web-api/utils.ts), but from the user's real
- * browser/session/IP instead of a datacenter server — that's the whole point,
- * Instagram blocks the latter regardless of auth.
- */
 async function fetchInstagramProfileItems(username) {
-  const csrfCookie = await chrome.cookies.get({ url: 'https://www.instagram.com', name: 'csrftoken' });
-  if (!csrfCookie) throw new Error('not logged into instagram.com in this browser');
-
-  const url = `https://www.instagram.com/api/v1/users/web_profile_info/?username=${encodeURIComponent(username)}`;
-  const res = await fetch(url, {
-    credentials: 'include',
-    headers: {
-      'x-ig-app-id': IG_APP_ID,
-      'x-asbd-id': IG_ASBD_ID,
-      'x-ig-www-claim': '0',
-      'x-csrftoken': csrfCookie.value,
-    },
-  });
-  if (!res.ok) throw new Error(`instagram fetch failed: ${res.status}`);
-
-  const body = await res.json();
-  const edges = body?.data?.user?.edge_owner_to_timeline_media?.edges ?? [];
-
-  return edges.map(({ node }) => {
-    const caption = node.edge_media_to_caption?.edges?.[0]?.node?.text ?? '';
-    return {
-      guid: node.id,
-      link: `https://www.instagram.com/p/${node.shortcode}/`,
-      title: firstLine(caption),
-      summary: caption,
-      imageUrl: node.display_url,
-      author: node.owner?.username,
-      publishedAt: node.taken_at_timestamp ? new Date(node.taken_at_timestamp * 1000).toISOString() : undefined,
-    };
-  });
+  const tab = await chrome.tabs.create({ url: `https://www.instagram.com/${encodeURIComponent(username)}/`, active: false });
+  try {
+    await waitForTabComplete(tab.id);
+    const [{ result } = {}] = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: scrapeProfileGridInPage,
+      args: [username, GRID_POLL_TIMEOUT_MS],
+    });
+    if (!result) throw new Error('no result from page script');
+    if (result.error) throw new Error(result.error);
+    return result.items;
+  } finally {
+    await chrome.tabs.remove(tab.id).catch(() => {});
+  }
 }
 
 async function pushItems(apiBaseUrl, apiToken, sourceId, items) {
@@ -139,6 +189,16 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
   if (message?.type === 'reschedule') {
     scheduleAlarm().then(() => sendResponse({ ok: true }));
+    return true;
+  }
+  return undefined;
+});
+
+// Lets the RSS Reader web page itself (origin declared in
+// externally_connectable above) trigger a sync without opening the popup.
+chrome.runtime.onMessageExternal.addListener((message, _sender, sendResponse) => {
+  if (message?.type === 'sync-now') {
+    runSyncCycle().then(() => sendResponse({ ok: true }));
     return true;
   }
   return undefined;
