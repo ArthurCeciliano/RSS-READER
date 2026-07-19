@@ -1,4 +1,4 @@
-import type { FolderNode } from '../types';
+import type { FolderNode, SelectedScope, SourceSummary } from '../types';
 import './StoriesBar.css';
 
 function extractInstagramUsername(identityUrl: string): string {
@@ -9,14 +9,30 @@ function extractInstagramUsername(identityUrl: string): string {
   }
 }
 
+// Scoped to whatever's currently selected instead of showing every active
+// story at once: a folder shows stories from sources in that folder, a single
+// source shows just its own, and anything broader (all items/starred/tag/
+// search) shows none — there's no single folder/source to scope it to there.
+function storySourcesForScope(folders: FolderNode[], scope: SelectedScope): SourceSummary[] {
+  if (scope.kind === 'folder') {
+    const folder = folders.find((f) => f.id === scope.id);
+    return (folder?.sources ?? []).filter((s) => s.type === 'instagram' && s.hasActiveStory);
+  }
+  if (scope.kind === 'source') {
+    const source = folders.flatMap((f) => f.sources).find((s) => s.id === scope.id);
+    return source && source.type === 'instagram' && source.hasActiveStory ? [source] : [];
+  }
+  return [];
+}
+
 /**
  * Shows only sources the extension detected an active story ring on during its
  * last visit (Source.hasActiveStory) — never opens the story itself (that would
  * mark it "seen" for the poster), just links out to instagram.com/stories/:user/
  * so viewing it is a real, manual action on your part, same as browsing there directly.
  */
-export function StoriesBar({ folders }: { folders: FolderNode[] }) {
-  const activeStories = folders.flatMap((f) => f.sources).filter((s) => s.type === 'instagram' && s.hasActiveStory);
+export function StoriesBar({ folders, scope }: { folders: FolderNode[]; scope: SelectedScope }) {
+  const activeStories = storySourcesForScope(folders, scope);
 
   if (activeStories.length === 0) return null;
 

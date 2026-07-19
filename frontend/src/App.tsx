@@ -270,7 +270,7 @@ export default function App() {
               searchQuery={searchQuery}
               onSearchQueryChange={setSearchQuery}
             />
-            <StoriesBar folders={folders} />
+            <StoriesBar folders={folders} scope={scope} />
             <div className="app-content">
               <ItemList
                 items={items}
