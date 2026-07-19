@@ -101,6 +101,21 @@ export default function App() {
           }
         })
         .catch(() => {});
+
+      // Instagram DMs have no per-conversation link to open directly (see
+      // extension/background.js) — the notification just points at the
+      // generic inbox, same as the Stories bar points at instagram.com/stories.
+      api
+        .getPendingDmPreviews()
+        .then((r) => {
+          for (const preview of r.previews) {
+            showDesktopNotification(`Nova mensagem de ${preview.senderName}`, preview.previewText, () => {
+              window.open('https://www.instagram.com/direct/inbox/', '_blank');
+            });
+            api.ackDmPreview(preview.id).catch(() => {});
+          }
+        })
+        .catch(() => {});
     }, NOTIFICATION_POLL_MS);
     return () => clearInterval(poll);
   }, []);

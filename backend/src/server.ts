@@ -14,6 +14,7 @@ import { statsRoutes } from './modules/api/routes/stats.js';
 import { rulesRoutes } from './modules/api/routes/rules.js';
 import { tagsRoutes } from './modules/api/routes/tags.js';
 import { extensionRoutes } from './modules/api/routes/extension.js';
+import { dmPreviewsRoutes } from './modules/api/routes/dmPreviews.js';
 
 // Combined-deploy mode (module 1: single Render Web Service instead of separate
 // worker/static-site services) — importing this starts the BullMQ worker in the
@@ -45,6 +46,7 @@ await app.register(statsRoutes);
 await app.register(rulesRoutes);
 await app.register(tagsRoutes);
 await app.register(extensionRoutes);
+await app.register(dmPreviewsRoutes);
 
 if (env.serveFrontend) {
   const dir = path.dirname(fileURLToPath(import.meta.url));

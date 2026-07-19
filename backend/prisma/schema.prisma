@@ -166,3 +166,23 @@ model Setting {
   key   String @id
   value Json
 }
+
+// Instagram DM inbox previews pushed by the browser extension (extension/).
+// There is no static per-conversation link on Instagram's own inbox list (it's
+// client-side-routed JS, no real <a href>), and discovering one would require
+// actually opening the thread — which likely marks it "seen" for the sender,
+// exactly what this feature avoids. So this only ever stores the same preview
+// snippet already visible in the inbox list (sender + last-message preview),
+// and the app links out to the generic inbox, not a specific thread.
+model DirectMessagePreview {
+  id           String   @id @default(uuid())
+  senderName   String   @unique
+  previewText  String
+  avatarUrl    String?
+  // Reset to false whenever previewText changes (a new message arrived);
+  // left alone otherwise so a message the user already dismissed doesn't
+  // re-notify every sync cycle just because it's still the latest one shown.
+  acknowledged Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}

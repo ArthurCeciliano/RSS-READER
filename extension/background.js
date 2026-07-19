@@ -2,6 +2,7 @@ const ALARM_NAME = 'ig-sync';
 const DEFAULT_SYNC_INTERVAL_MINUTES = 25;
 const TAB_LOAD_TIMEOUT_MS = 15000;
 const GRID_POLL_TIMEOUT_MS = 8000;
+const INBOX_POLL_TIMEOUT_MS = 8000;
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -99,6 +100,49 @@ function scrapeProfileGridInPage(username, pollTimeoutMs) {
   })();
 }
 
+/**
+ * Runs INSIDE instagram.com/direct/inbox/. There's no real per-conversation
+ * link in this list (client-side-routed, no <a href>), so this only mirrors
+ * the same sender + preview snippet already visible — never opens a thread
+ * (which would very likely mark it "seen" for the sender).
+ */
+function scrapeDmInboxInPage(pollTimeoutMs) {
+  return (async () => {
+    try {
+      function collect() {
+        const container = document.querySelector('[data-pagelet="IGDInboxThreadListScrollableAreaPagelet"]') || document.body;
+        const seen = new Set();
+        const conversations = [];
+        container.querySelectorAll('span[title]').forEach((nameSpan) => {
+          const senderName = nameSpan.getAttribute('title');
+          if (!senderName || seen.has(senderName)) return;
+          // Walk up from the name to the nearest ancestor that also contains
+          // the row's avatar image -- a reasonable proxy for "the whole row".
+          let row = nameSpan;
+          while (row && row.parentElement && !row.querySelector('img')) row = row.parentElement;
+          if (!row) return;
+          const avatarUrl = row.querySelector('img')?.src;
+          const previewText = (row.textContent || '').replace(senderName, '').trim();
+          if (!previewText) return;
+          seen.add(senderName);
+          conversations.push({ senderName, previewText, avatarUrl });
+        });
+        return conversations;
+      }
+
+      const deadline = Date.now() + pollTimeoutMs;
+      let conversations = collect();
+      while (conversations.length === 0 && Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        conversations = collect();
+      }
+      return { conversations };
+    } catch (err) {
+      return { error: String(err?.message ?? err) };
+    }
+  })();
+}
+
 async function getConfig() {
   const { apiBaseUrl, apiToken, syncIntervalMinutes } = await chrome.storage.local.get([
     'apiBaseUrl',
@@ -148,6 +192,33 @@ async function pushItems(apiBaseUrl, apiToken, sourceId, items, hasActiveStory) 
   return res.json();
 }
 
+async function fetchDmInbox() {
+  const tab = await chrome.tabs.create({ url: 'https://www.instagram.com/direct/inbox/', active: false });
+  try {
+    await waitForTabComplete(tab.id);
+    const [{ result } = {}] = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: scrapeDmInboxInPage,
+      args: [INBOX_POLL_TIMEOUT_MS],
+    });
+    if (!result) throw new Error('no result from page script');
+    if (result.error) throw new Error(result.error);
+    return result.conversations;
+  } finally {
+    await chrome.tabs.remove(tab.id).catch(() => {});
+  }
+}
+
+async function pushDmInbox(apiBaseUrl, apiToken, conversations) {
+  const res = await fetch(`${apiBaseUrl}/api/extension/instagram/dm-inbox`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Extension-Token': apiToken },
+    body: JSON.stringify({ conversations }),
+  });
+  if (!res.ok) throw new Error(`push dm-inbox failed: ${res.status}`);
+  return res.json();
+}
+
 async function runSyncCycle() {
   const { apiBaseUrl, apiToken } = await getConfig();
   if (!apiBaseUrl || !apiToken) {
@@ -168,6 +239,14 @@ async function runSyncCycle() {
       }
       // Small randomized gap between profiles so this never looks like a burst.
       await delay(2000 + Math.random() * 3000);
+    }
+
+    try {
+      const conversations = await fetchDmInbox();
+      await pushDmInbox(apiBaseUrl, apiToken, conversations);
+      results.push({ username: '(mensagens)', status: 'ok', newItemCount: conversations.length });
+    } catch (err) {
+      results.push({ username: '(mensagens)', status: 'error', error: String(err?.message ?? err) });
     }
   } catch (err) {
     await chrome.storage.local.set({

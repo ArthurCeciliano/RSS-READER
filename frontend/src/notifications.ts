@@ -7,10 +7,11 @@ export function requestNotificationPermission(): void {
   }
 }
 
-export function showDesktopNotification(title: string, body: string): void {
+export function showDesktopNotification(title: string, body: string, onClick?: () => void): void {
   if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
   try {
-    new Notification(title, { body });
+    const notification = new Notification(title, { body });
+    if (onClick) notification.onclick = () => { onClick(); notification.close(); };
   } catch {
     // some browsers throw if the page isn't in a state that allows it -- not worth surfacing
   }

@@ -164,4 +164,11 @@ export const api = {
     }>('/api/items/pending-notifications'),
 
   ackNotification: (id: string) => request(`/api/items/${id}/ack-notification`, { method: 'POST' }),
+
+  getPendingDmPreviews: () =>
+    request<{ previews: Array<{ id: string; senderName: string; previewText: string; avatarUrl: string | null }> }>(
+      '/api/dm-previews/pending',
+    ),
+
+  ackDmPreview: (id: string) => request(`/api/dm-previews/${id}/ack`, { method: 'POST' }),
 };

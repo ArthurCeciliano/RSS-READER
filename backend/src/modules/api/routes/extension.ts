@@ -15,6 +15,12 @@ interface ExtensionPushItem {
   publishedAt?: string;
 }
 
+interface DmConversationPreview {
+  senderName: string;
+  previewText: string;
+  avatarUrl?: string;
+}
+
 /**
  * Consumed only by the "RSS Reader - Instagram Bridge" browser extension
  * (extension/), which fetches Instagram content from the user's own logged-in
@@ -75,6 +81,38 @@ export async function extensionRoutes(app: FastifyInstance) {
       }
 
       return { newItemCount };
+    },
+  );
+
+  // No per-conversation link exists to deep-link into (Instagram's inbox list
+  // is client-side-routed with no real <a href>, and discovering one would
+  // mean opening the thread ourselves — which likely marks it "seen" for the
+  // sender). So this just mirrors the same preview snippet already visible in
+  // the inbox list; the app links out to the generic inbox, never a thread.
+  app.post<{ Body: { conversations?: DmConversationPreview[] } }>(
+    '/api/extension/instagram/dm-inbox',
+    async (req, reply) => {
+      if (!Array.isArray(req.body?.conversations)) {
+        return reply.code(400).send({ error: 'conversations must be an array' });
+      }
+      for (const c of req.body.conversations) {
+        if (!c.senderName || !c.previewText) continue;
+        const existing = await prisma.directMessagePreview.findUnique({ where: { senderName: c.senderName } });
+        if (!existing) {
+          await prisma.directMessagePreview.create({
+            data: { senderName: c.senderName, previewText: c.previewText, avatarUrl: c.avatarUrl },
+          });
+        } else if (existing.previewText !== c.previewText) {
+          // New message content since we last saw this conversation -- worth notifying again.
+          await prisma.directMessagePreview.update({
+            where: { id: existing.id },
+            data: { previewText: c.previewText, avatarUrl: c.avatarUrl ?? existing.avatarUrl, acknowledged: false },
+          });
+        } else if (c.avatarUrl && c.avatarUrl !== existing.avatarUrl) {
+          await prisma.directMessagePreview.update({ where: { id: existing.id }, data: { avatarUrl: c.avatarUrl } });
+        }
+      }
+      return reply.send({ ok: true });
     },
   );
 }
