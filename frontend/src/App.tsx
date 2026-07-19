@@ -11,13 +11,14 @@ import { HealthPage } from './components/HealthPage';
 import { StatsPage } from './components/StatsPage';
 import { RulesPage } from './components/RulesPage';
 import { TagsPage } from './components/TagsPage';
+import { MessagesPage } from './components/MessagesPage';
 import { api } from './api/client';
 import { playBeep, requestNotificationPermission, showDesktopNotification } from './notifications';
 import type { FeedItem, FolderNode, ItemFilter, SelectedScope, SortOrder, Tag, ViewMode } from './types';
 
 const NOTIFICATION_POLL_MS = 20_000;
 
-type PageView = 'reader-shell' | 'settings' | 'health' | 'rules' | 'tags' | 'stats';
+type PageView = 'reader-shell' | 'settings' | 'health' | 'rules' | 'tags' | 'stats' | 'messages';
 
 // Minimal shape of the extension messaging API this app talks to (see
 // extension/manifest.json's externally_connectable) — not a full chrome typings install.
@@ -46,6 +47,8 @@ export default function App() {
   const [instagramExtensionId, setInstagramExtensionId] = useState<string | null>(null);
   const [syncingInstagram, setSyncingInstagram] = useState(false);
   const [markArticleAsReadSetting, setMarkArticleAsReadSetting] = useState<'on_display' | 'on_click' | 'manual'>('on_display');
+  const [pendingDmCount, setPendingDmCount] = useState(0);
+  const [notifiedDmIds] = useState<Set<string>>(() => new Set());
 
   const loadFolders = useCallback(() => {
     api.getFolders().then((r) => setFolders(r.folders)).catch(() => {});
@@ -105,14 +108,20 @@ export default function App() {
       // Instagram DMs have no per-conversation link to open directly (see
       // extension/background.js) — the notification just points at the
       // generic inbox, same as the Stories bar points at instagram.com/stories.
+      // Never auto-acknowledged here (only a missed/dismissed toast used to
+      // silently count as "seen" before) -- it stays pending, visible on the
+      // Mensagens page, until the user actually clicks through to Instagram.
       api
         .getPendingDmPreviews()
         .then((r) => {
+          setPendingDmCount(r.previews.length);
           for (const preview of r.previews) {
+            if (notifiedDmIds.has(preview.id)) continue;
+            notifiedDmIds.add(preview.id);
             showDesktopNotification(`Nova mensagem de ${preview.senderName}`, preview.previewText, () => {
               window.open('https://www.instagram.com/direct/inbox/', '_blank');
+              api.ackDmPreview(preview.id).then(() => setPendingDmCount((c) => Math.max(0, c - 1))).catch(() => {});
             });
-            api.ackDmPreview(preview.id).catch(() => {});
           }
         })
         .catch(() => {});
@@ -245,9 +254,11 @@ export default function App() {
             ? 'Tags'
             : page === 'stats'
               ? 'Estatísticas'
-              : searchQuery.trim()
-                ? `Busca: "${searchQuery.trim()}"`
-                : scope.label;
+              : page === 'messages'
+                ? 'Mensagens'
+                : searchQuery.trim()
+                  ? `Busca: "${searchQuery.trim()}"`
+                  : scope.label;
 
   return (
     <div className="app-shell">
@@ -261,6 +272,8 @@ export default function App() {
         onOpenRules={() => setPage('rules')}
         onOpenTags={() => setPage('tags')}
         onOpenStats={() => setPage('stats')}
+        onOpenMessages={() => setPage('messages')}
+        pendingDmCount={pendingDmCount}
         onFoldersChanged={loadFolders}
       />
 
@@ -306,6 +319,11 @@ export default function App() {
         {page === 'rules' && <RulesPage />}
         {page === 'tags' && <TagsPage onSelectTag={handleSelectTag} />}
         {page === 'stats' && <StatsPage />}
+        {page === 'messages' && (
+          <MessagesPage
+            onChanged={() => api.getPendingDmPreviews().then((r) => setPendingDmCount(r.previews.length))}
+          />
+        )}
       </div>
 
       {selectedItem && (

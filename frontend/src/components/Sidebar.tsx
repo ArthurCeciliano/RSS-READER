@@ -16,6 +16,8 @@ interface SidebarProps {
   onOpenRules: () => void;
   onOpenTags: () => void;
   onOpenStats: () => void;
+  onOpenMessages: () => void;
+  pendingDmCount: number;
   onFoldersChanged: () => void;
 }
 
@@ -50,6 +52,8 @@ export function Sidebar({
   onOpenRules,
   onOpenTags,
   onOpenStats,
+  onOpenMessages,
+  pendingDmCount,
   onFoldersChanged,
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
@@ -238,6 +242,10 @@ export function Sidebar({
           onClick={() => onSelectScope({ kind: 'starred', label: 'Itens estrelados' })}
         >
           <span>Itens estrelados</span>
+        </button>
+        <button className="sidebar-fixed-item" onClick={onOpenMessages}>
+          <span>Mensagens</span>
+          {pendingDmCount > 0 && <span className="badge">{pendingDmCount}</span>}
         </button>
         <button className="sidebar-fixed-item" onClick={onOpenRules}>
           <span>Regras</span>
