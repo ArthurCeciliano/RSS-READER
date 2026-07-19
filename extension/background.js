@@ -56,23 +56,20 @@ function scrapeProfileGridInPage(username, pollTimeoutMs) {
         return posts;
       }
 
-      // A story ring is rendered as an extra <canvas> around the avatar, sized
-      // and positioned larger than the <img> itself, only when a story is
-      // currently active. A bare "is there any canvas at all" check turned out
-      // to false-positive on unrelated canvases elsewhere on the page (e.g.
-      // fingerprinting/analytics canvases present on every profile regardless
-      // of story state) — so this also requires the specific ring signature we
-      // confirmed live: a small negative left/top offset (it's centered padding
-      // around a smaller avatar image, e.g. -7.5px around a 150px avatar) and
-      // an avatar-ish size, not just "some canvas exists somewhere".
+      // Canvas-presence heuristics (bare "any canvas", then "canvas with a
+      // small negative offset") both false-positived way too often in
+      // practice (~80% of profiles flagged, clearly wrong) — some other,
+      // unrelated canvas apparently matches those shapes too. The signal we
+      // actually confirmed live on two real profiles is structural instead:
+      // with no active story the avatar <img> sits directly inside a real
+      // link (<a href="/username/">); with an active story it's wrapped in a
+      // <span> instead (with a ring <canvas> alongside it, but the canvas
+      // itself isn't what's checked here anymore) -- no <a> parent is the signal.
       function hasActiveStoryRing() {
         const header = document.querySelector('header') || document.querySelector('main');
-        if (!header) return false;
-        return [...header.querySelectorAll('canvas')].some((c) => {
-          const left = Number.parseFloat(c.style.left || '0');
-          const width = Number.parseFloat(c.style.width || '0');
-          return left < -2 && left > -20 && width >= 60 && width <= 400;
-        });
+        const avatarImg = header?.querySelector('img');
+        if (!avatarImg) return false;
+        return avatarImg.parentElement?.tagName !== 'A';
       }
 
       // The grid renders client-side a moment after navigation finishes; poll briefly.
