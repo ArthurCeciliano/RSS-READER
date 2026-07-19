@@ -56,6 +56,7 @@ export function Sidebar({
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [moveDialogSource, setMoveDialogSource] = useState<{ id: string; title: string } | null>(null);
   const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
+  const [dragOverSource, setDragOverSource] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const totalUnread = folders.reduce((sum, f) => sum + f.unreadCount, 0);
@@ -136,6 +137,46 @@ export function Sidebar({
       onFoldersChanged();
     } catch (err) {
       reportError(err, 'Falha ao mover fonte.');
+    }
+  }
+
+  // Backend PATCH endpoints only ever write whatever sortOrder they're given —
+  // nothing reindexes siblings server-side — so reordering means recomputing
+  // sequential 0..n-1 values for the whole affected list and writing them all.
+  async function handleReorderFolders(draggedId: string, targetId: string) {
+    if (draggedId === targetId) return;
+    const ids = folders.map((f) => f.id);
+    const fromIndex = ids.indexOf(draggedId);
+    const toIndex = ids.indexOf(targetId);
+    if (fromIndex === -1 || toIndex === -1) return;
+    ids.splice(toIndex, 0, ids.splice(fromIndex, 1)[0]);
+    try {
+      await Promise.all(ids.map((id, index) => api.updateFolder(id, { sortOrder: index })));
+      onFoldersChanged();
+    } catch (err) {
+      reportError(err, 'Falha ao reordenar pastas.');
+    }
+  }
+
+  async function handleReorderSource(draggedSourceId: string, targetFolder: FolderNode, targetSourceId: string) {
+    if (draggedSourceId === targetSourceId) return;
+    const movingFrom = folders.find((f) => f.sources.some((s) => s.id === draggedSourceId));
+    const ids = targetFolder.sources.map((s) => s.id).filter((id) => id !== draggedSourceId);
+    const toIndex = ids.indexOf(targetSourceId);
+    ids.splice(toIndex, 0, draggedSourceId);
+    const movingAcrossFolders = !movingFrom || movingFrom.id !== targetFolder.id;
+    try {
+      await Promise.all(
+        ids.map((id, index) =>
+          api.updateSource(id, {
+            sortOrder: index,
+            ...(id === draggedSourceId && movingAcrossFolders ? { folderId: targetFolder.id } : {}),
+          }),
+        ),
+      );
+      onFoldersChanged();
+    } catch (err) {
+      reportError(err, 'Falha ao reordenar fontes.');
     }
   }
 
@@ -220,8 +261,10 @@ export function Sidebar({
             <div key={folder.id} className="folder-block">
               <button
                 className={`folder-row ${isDragOver ? 'drag-over' : ''}`}
+                draggable
                 onClick={() => toggleFolder(folder.id)}
                 onContextMenu={(e) => openFolderMenu(e, folder)}
+                onDragStart={(e) => e.dataTransfer.setData('text/rss-folder-id', folder.id)}
                 onDragOver={(e) => {
                   e.preventDefault();
                   setDragOverFolder(folder.id);
@@ -230,6 +273,11 @@ export function Sidebar({
                 onDrop={(e) => {
                   e.preventDefault();
                   setDragOverFolder(null);
+                  const draggedFolderId = e.dataTransfer.getData('text/rss-folder-id');
+                  if (draggedFolderId) {
+                    handleReorderFolders(draggedFolderId, folder.id);
+                    return;
+                  }
                   const sourceId = e.dataTransfer.getData('text/rss-source-id');
                   if (sourceId) handleMoveSource(sourceId, folder.id);
                 }}
@@ -253,9 +301,22 @@ export function Sidebar({
                       key={source.id}
                       draggable
                       onDragStart={(e) => e.dataTransfer.setData('text/rss-source-id', source.id)}
-                      className={`source-row ${scope.kind === 'source' && scope.id === source.id ? 'active' : ''}`}
+                      className={`source-row ${scope.kind === 'source' && scope.id === source.id ? 'active' : ''} ${dragOverSource === source.id ? 'drag-over' : ''}`}
                       onClick={() => onSelectScope({ kind: 'source', id: source.id, label: source.title })}
                       onContextMenu={(e) => openSourceMenu(e, source)}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setDragOverSource(source.id);
+                      }}
+                      onDragLeave={() => setDragOverSource((prev) => (prev === source.id ? null : prev))}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setDragOverSource(null);
+                        const draggedSourceId = e.dataTransfer.getData('text/rss-source-id');
+                        if (draggedSourceId) handleReorderSource(draggedSourceId, folder, source.id);
+                      }}
                     >
                       <span className="source-icon" aria-hidden>
                         {typeIcon(source.type)}

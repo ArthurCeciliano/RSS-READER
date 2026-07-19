@@ -97,7 +97,8 @@
   color: var(--text-primary);
 }
 
-.folder-row.drag-over {
+.folder-row.drag-over,
+.source-row.drag-over {
   background: var(--accent-soft);
   outline: 1px dashed var(--accent);
 }
