@@ -41,7 +41,7 @@ export default function App() {
   const [selectedItem, setSelectedItem] = useState<FeedItem | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [showAddSource, setShowAddSource] = useState(false);
-  const [page, setPage] = useState<PageView>('reader-shell');
+  const [page, setPage] = useState<PageView>('stats');
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [instagramExtensionId, setInstagramExtensionId] = useState<string | null>(null);
