@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import type { FeedItem, ViewMode } from '../types';
 import { relativeTime } from '../utils/relativeTime';
 import './ItemList.css';
@@ -10,6 +11,48 @@ interface ItemListProps {
   onLoadMore: () => void;
   hasMore: boolean;
   selectedItemId?: string;
+  /** Called once per item the first time it scrolls into view (only wired up when the
+   *  "Mark article as read" setting is on_display — undefined disables scroll-tracking). */
+  onItemVisible?: (item: FeedItem) => void;
+}
+
+/** Marks each not-yet-read item read the first time ~half of its card/row has scrolled
+ *  into view, so a fast scan through a big grid of posts counts as "read" without
+ *  clicking into every single one. One shared IntersectionObserver for the whole list. */
+function useMarkVisibleAsRead(items: FeedItem[], onItemVisible?: (item: FeedItem) => void) {
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const nodeToItemId = useRef(new Map<Element, string>());
+  const notifiedIds = useRef(new Set<string>());
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+  const onItemVisibleRef = useRef(onItemVisible);
+  onItemVisibleRef.current = onItemVisible;
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const id = nodeToItemId.current.get(entry.target);
+          if (!id || notifiedIds.current.has(id)) continue;
+          const item = itemsRef.current.find((i) => i.id === id);
+          if (!item || item.isRead) continue;
+          notifiedIds.current.add(id);
+          observer.unobserve(entry.target);
+          onItemVisibleRef.current?.(item);
+        }
+      },
+      { threshold: 0.5 },
+    );
+    observerRef.current = observer;
+    return () => observer.disconnect();
+  }, []);
+
+  return (node: Element | null, item: FeedItem) => {
+    if (!node || !observerRef.current || item.isRead || notifiedIds.current.has(item.id)) return;
+    nodeToItemId.current.set(node, item.id);
+    observerRef.current.observe(node);
+  };
 }
 
 function ItemMeta({ item }: { item: FeedItem }) {
@@ -21,13 +64,25 @@ function ItemMeta({ item }: { item: FeedItem }) {
   );
 }
 
-export function ItemList({ items, viewMode, onOpenItem, onToggleStar, onLoadMore, hasMore, selectedItemId }: ItemListProps) {
+export function ItemList({
+  items,
+  viewMode,
+  onOpenItem,
+  onToggleStar,
+  onLoadMore,
+  hasMore,
+  selectedItemId,
+  onItemVisible,
+}: ItemListProps) {
+  const registerVisibilityNode = useMarkVisibleAsRead(items, onItemVisible);
+
   if (viewMode === 'cards') {
     return (
       <div className="item-grid">
         {items.map((item) => (
           <article
             key={item.id}
+            ref={(node) => registerVisibilityNode(node, item)}
             className={`item-card ${item.isRead ? 'read' : ''} ${selectedItemId === item.id ? 'selected' : ''}`}
             onClick={() => onOpenItem(item)}
           >
@@ -81,6 +136,7 @@ export function ItemList({ items, viewMode, onOpenItem, onToggleStar, onLoadMore
       {items.map((item) => (
         <div
           key={item.id}
+          ref={(node) => registerVisibilityNode(node, item)}
           className={`item-row ${item.isRead ? 'read' : ''} ${selectedItemId === item.id ? 'selected' : ''}`}
           onClick={() => onOpenItem(item)}
         >

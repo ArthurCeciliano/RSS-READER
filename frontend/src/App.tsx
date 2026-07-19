@@ -44,6 +44,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [instagramExtensionId, setInstagramExtensionId] = useState<string | null>(null);
   const [syncingInstagram, setSyncingInstagram] = useState(false);
+  const [markArticleAsReadSetting, setMarkArticleAsReadSetting] = useState<'on_display' | 'on_click' | 'manual'>('on_display');
 
   const loadFolders = useCallback(() => {
     api.getFolders().then((r) => setFolders(r.folders)).catch(() => {});
@@ -78,7 +79,11 @@ export default function App() {
   useEffect(() => {
     api
       .getSettings()
-      .then((s) => setInstagramExtensionId((s.instagramExtensionId as string) || null))
+      .then((s) => {
+        setInstagramExtensionId((s.instagramExtensionId as string) || null);
+        const mode = s.markArticleAsRead as 'on_display' | 'on_click' | 'manual' | undefined;
+        if (mode === 'on_display' || mode === 'on_click' || mode === 'manual') setMarkArticleAsReadSetting(mode);
+      })
       .catch(() => {});
   }, []);
 
@@ -147,7 +152,7 @@ export default function App() {
   function openItem(item: FeedItem) {
     setSelectedItem(item);
     setSelectedIndex(items.findIndex((i) => i.id === item.id));
-    if (!item.isRead) markRead(item, true);
+    if (!item.isRead && markArticleAsReadSetting !== 'manual') markRead(item, true);
   }
 
   function navigateReader(direction: 1 | -1) {
@@ -156,7 +161,11 @@ export default function App() {
     setSelectedIndex(nextIndex);
     const item = items[nextIndex];
     setSelectedItem(item);
-    if (!item.isRead) markRead(item, true);
+    if (!item.isRead && markArticleAsReadSetting !== 'manual') markRead(item, true);
+  }
+
+  function handleItemVisible(item: FeedItem) {
+    if (markArticleAsReadSetting === 'on_display' && !item.isRead) markRead(item, true);
   }
 
   async function handleMarkAllRead() {
@@ -269,6 +278,7 @@ export default function App() {
                 onLoadMore={() => nextCursor && loadItems(nextCursor)}
                 hasMore={Boolean(nextCursor)}
                 selectedItemId={selectedItem?.id}
+                onItemVisible={markArticleAsReadSetting === 'on_display' ? handleItemVisible : undefined}
               />
             </div>
           </>
