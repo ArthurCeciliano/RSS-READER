@@ -125,8 +125,23 @@ export default function App() {
 
   function markRead(item: FeedItem, isRead = true) {
     setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, isRead } : i)));
-    api.updateItem(item.id, { isRead }).catch(() => {});
-    loadFolders();
+
+    // Optimistic sidebar badge update so it moves instantly instead of waiting on
+    // a round-trip — loadFolders() below still reconciles with the server's count
+    // once the PATCH has actually committed (it used to fire in parallel with the
+    // update instead of after it, so it could race and refetch stale numbers).
+    if (item.isRead !== isRead) {
+      const delta = isRead ? -1 : 1;
+      setFolders((prev) =>
+        prev.map((f) => ({
+          ...f,
+          unreadCount: f.sources.some((s) => s.id === item.sourceId) ? Math.max(0, f.unreadCount + delta) : f.unreadCount,
+          sources: f.sources.map((s) => (s.id === item.sourceId ? { ...s, unreadCount: Math.max(0, s.unreadCount + delta) } : s)),
+        })),
+      );
+    }
+
+    api.updateItem(item.id, { isRead }).then(loadFolders).catch(() => {});
   }
 
   function openItem(item: FeedItem) {
