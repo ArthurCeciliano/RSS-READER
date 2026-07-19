@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import './App.css';
 import { Sidebar } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
+import { StoriesBar } from './components/StoriesBar';
 import { ItemList } from './components/ItemList';
 import { Reader } from './components/Reader';
 import { AddSourceDialog } from './components/AddSourceDialog';
@@ -269,6 +270,7 @@ export default function App() {
               searchQuery={searchQuery}
               onSearchQueryChange={setSearchQuery}
             />
+            <StoriesBar folders={folders} />
             <div className="app-content">
               <ItemList
                 items={items}

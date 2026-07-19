@@ -71,6 +71,13 @@ model Source {
   status          SourceStatus @default(ok)
   lastError       String?
 
+  // Set by the browser extension (extension/) on every Instagram sync cycle,
+  // detected from the profile page it already visits to read posts — a story
+  // ring is rendered as an extra <canvas> around the avatar only when a story
+  // is currently active, so presence/absence of that canvas is the signal.
+  // Always overwritten on each visit, so it self-corrects once a story expires.
+  hasActiveStory Boolean @default(false)
+
   items     Item[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

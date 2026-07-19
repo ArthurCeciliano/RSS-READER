@@ -13,7 +13,8 @@ function render(lastRun) {
   resultsEl.innerHTML = (lastRun.results || [])
     .map((r) => {
       if (r.status === 'ok') {
-        return `<li><span>${r.username}</span><span class="ok">${r.newItemCount} novo(s)</span></li>`;
+        const story = r.hasActiveStory ? ' 📖' : '';
+        return `<li><span>${r.username}${story}</span><span class="ok">${r.newItemCount} novo(s)</span></li>`;
       }
       return `<li><span>${r.username}</span><span class="error">${r.error}</span></li>`;
     })

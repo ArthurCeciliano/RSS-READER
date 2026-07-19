@@ -44,7 +44,7 @@ export async function extensionRoutes(app: FastifyInstance) {
     };
   });
 
-  app.post<{ Params: { sourceId: string }; Body: { items?: ExtensionPushItem[] } }>(
+  app.post<{ Params: { sourceId: string }; Body: { items?: ExtensionPushItem[]; hasActiveStory?: boolean } }>(
     '/api/extension/instagram/:sourceId/items',
     async (req, reply) => {
       const source = await prisma.source.findUnique({ where: { id: req.params.sourceId } });
@@ -66,6 +66,14 @@ export async function extensionRoutes(app: FastifyInstance) {
       }));
 
       const { newItemCount } = await finalizeSuccessfulIngest(prisma, source, items);
+
+      // Independent of item ingestion: always overwritten with whatever this
+      // visit observed, so it self-corrects once a story expires (24h) without
+      // needing any separate expiry job.
+      if (typeof req.body.hasActiveStory === 'boolean' && req.body.hasActiveStory !== source.hasActiveStory) {
+        await prisma.source.update({ where: { id: source.id }, data: { hasActiveStory: req.body.hasActiveStory } });
+      }
+
       return { newItemCount };
     },
   );

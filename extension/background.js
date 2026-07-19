@@ -55,6 +55,16 @@ function scrapeProfileGridInPage(username, pollTimeoutMs) {
         return posts;
       }
 
+      // A story ring is rendered as an extra <canvas> around the avatar, sized
+      // and positioned larger than the <img> itself, only when a story is
+      // currently active — absent entirely otherwise (confirmed by comparing
+      // a profile with an active story against one without: no story means no
+      // <canvas> anywhere near the avatar, just the plain <img>).
+      function hasActiveStoryRing() {
+        const header = document.querySelector('header') || document.querySelector('main');
+        return Boolean(header?.querySelector('canvas'));
+      }
+
       // The grid renders client-side a moment after navigation finishes; poll briefly.
       const deadline = Date.now() + pollTimeoutMs;
       let posts = collectPosts();
@@ -62,8 +72,12 @@ function scrapeProfileGridInPage(username, pollTimeoutMs) {
         await new Promise((resolve) => setTimeout(resolve, 500));
         posts = collectPosts();
       }
+      const hasActiveStory = hasActiveStoryRing();
       if (posts.length === 0) {
-        return { error: 'no posts found in the rendered page (private/empty profile, or the grid did not load in time)' };
+        return {
+          error: 'no posts found in the rendered page (private/empty profile, or the grid did not load in time)',
+          hasActiveStory,
+        };
       }
 
       const items = posts.map((p) => {
@@ -78,7 +92,7 @@ function scrapeProfileGridInPage(username, pollTimeoutMs) {
           author: username,
         };
       });
-      return { items };
+      return { items, hasActiveStory };
     } catch (err) {
       return { error: String(err?.message ?? err) };
     }
@@ -118,17 +132,17 @@ async function fetchInstagramProfileItems(username) {
     });
     if (!result) throw new Error('no result from page script');
     if (result.error) throw new Error(result.error);
-    return result.items;
+    return { items: result.items, hasActiveStory: result.hasActiveStory };
   } finally {
     await chrome.tabs.remove(tab.id).catch(() => {});
   }
 }
 
-async function pushItems(apiBaseUrl, apiToken, sourceId, items) {
+async function pushItems(apiBaseUrl, apiToken, sourceId, items, hasActiveStory) {
   const res = await fetch(`${apiBaseUrl}/api/extension/instagram/${sourceId}/items`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Extension-Token': apiToken },
-    body: JSON.stringify({ items }),
+    body: JSON.stringify({ items, hasActiveStory }),
   });
   if (!res.ok) throw new Error(`push items failed: ${res.status}`);
   return res.json();
@@ -146,9 +160,9 @@ async function runSyncCycle() {
     const due = await fetchDueSources(apiBaseUrl, apiToken);
     for (const { sourceId, username } of due) {
       try {
-        const items = await fetchInstagramProfileItems(username);
-        const { newItemCount } = await pushItems(apiBaseUrl, apiToken, sourceId, items);
-        results.push({ username, status: 'ok', newItemCount });
+        const { items, hasActiveStory } = await fetchInstagramProfileItems(username);
+        const { newItemCount } = await pushItems(apiBaseUrl, apiToken, sourceId, items, hasActiveStory);
+        results.push({ username, status: 'ok', newItemCount, hasActiveStory });
       } catch (err) {
         results.push({ username, status: 'error', error: String(err?.message ?? err) });
       }

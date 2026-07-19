@@ -9,6 +9,8 @@ export interface SourceSummary {
   status: SourceStatus;
   sortOrder: number;
   unreadCount: number;
+  identityUrl: string;
+  hasActiveStory: boolean;
 }
 
 export interface FolderNode {
