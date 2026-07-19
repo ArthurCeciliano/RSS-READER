@@ -77,6 +77,11 @@ model Source {
   // is currently active, so presence/absence of that canvas is the signal.
   // Always overwritten on each visit, so it self-corrects once a story expires.
   hasActiveStory Boolean @default(false)
+  // Set true when the user clicks through to view this specific active story
+  // (see StoriesBar.tsx). Reset back to false whenever hasActiveStory flips
+  // false->true (a fresh story) or true->false (it expired) -- so it only
+  // ever reflects "seen the CURRENT story", never carries over to the next one.
+  storyAcknowledged Boolean @default(false)
 
   items     Item[]
   createdAt DateTime @default(now())

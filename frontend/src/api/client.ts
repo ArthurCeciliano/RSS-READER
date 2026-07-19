@@ -55,8 +55,10 @@ export const api = {
 
   deleteFolder: (id: string) => request(`/api/folders/${id}`, { method: 'DELETE' }),
 
-  updateSource: (id: string, patch: { title?: string; folderId?: string | null; sortOrder?: number }) =>
-    request(`/api/sources/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  updateSource: (
+    id: string,
+    patch: { title?: string; folderId?: string | null; sortOrder?: number; storyAcknowledged?: boolean },
+  ) => request(`/api/sources/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
 
   deleteSource: (id: string) => request(`/api/sources/${id}`, { method: 'DELETE' }),
 

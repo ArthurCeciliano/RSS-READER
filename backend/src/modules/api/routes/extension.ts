@@ -75,9 +75,15 @@ export async function extensionRoutes(app: FastifyInstance) {
 
       // Independent of item ingestion: always overwritten with whatever this
       // visit observed, so it self-corrects once a story expires (24h) without
-      // needing any separate expiry job.
+      // needing any separate expiry job. storyAcknowledged only ever describes
+      // the CURRENT story, so it resets on either edge of hasActiveStory
+      // flipping (a fresh story starting, or the old one expiring) and is left
+      // alone while it stays continuously active across sync cycles.
       if (typeof req.body.hasActiveStory === 'boolean' && req.body.hasActiveStory !== source.hasActiveStory) {
-        await prisma.source.update({ where: { id: source.id }, data: { hasActiveStory: req.body.hasActiveStory } });
+        await prisma.source.update({
+          where: { id: source.id },
+          data: { hasActiveStory: req.body.hasActiveStory, storyAcknowledged: false },
+        });
       }
 
       return { newItemCount };

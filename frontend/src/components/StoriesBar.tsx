@@ -31,7 +31,15 @@ function storySourcesForScope(folders: FolderNode[], scope: SelectedScope): Sour
  * mark it "seen" for the poster), just links out to instagram.com/stories/:user/
  * so viewing it is a real, manual action on your part, same as browsing there directly.
  */
-export function StoriesBar({ folders, scope }: { folders: FolderNode[]; scope: SelectedScope }) {
+export function StoriesBar({
+  folders,
+  scope,
+  onStoryViewed,
+}: {
+  folders: FolderNode[];
+  scope: SelectedScope;
+  onStoryViewed: (sourceId: string) => void;
+}) {
   const activeStories = storySourcesForScope(folders, scope);
 
   if (activeStories.length === 0) return null;
@@ -41,11 +49,12 @@ export function StoriesBar({ folders, scope }: { folders: FolderNode[]; scope: S
       {activeStories.map((s) => (
         <a
           key={s.id}
-          className="story-chip"
+          className={`story-chip ${s.storyAcknowledged ? 'seen' : ''}`}
           href={`https://www.instagram.com/stories/${extractInstagramUsername(s.identityUrl)}/`}
           target="_blank"
           rel="noreferrer"
           title={`Ver story de ${s.title}`}
+          onClick={() => onStoryViewed(s.id)}
         >
           <span className="story-ring">◈</span>
           <span className="story-name">{s.title}</span>

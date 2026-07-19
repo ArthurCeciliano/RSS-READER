@@ -38,3 +38,15 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Already clicked through once -- same visual language Instagram itself uses
+   for a viewed story (ring goes flat gray) so it doesn't look identical to a
+   never-seen one, without hiding it entirely. */
+.story-chip.seen .story-ring {
+  background: var(--bg-hover, #3a3a3a);
+  opacity: 0.6;
+}
+
+.story-chip.seen .story-name {
+  opacity: 0.6;
+}

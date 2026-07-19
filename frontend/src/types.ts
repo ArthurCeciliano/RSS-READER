@@ -11,6 +11,7 @@ export interface SourceSummary {
   unreadCount: number;
   identityUrl: string;
   hasActiveStory: boolean;
+  storyAcknowledged: boolean;
 }
 
 export interface FolderNode {

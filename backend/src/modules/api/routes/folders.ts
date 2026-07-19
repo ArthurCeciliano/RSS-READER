@@ -29,6 +29,7 @@ export async function foldersRoutes(app: FastifyInstance) {
         unreadCount: unreadBySource.get(s.id) ?? 0,
         identityUrl: s.identityUrl,
         hasActiveStory: s.hasActiveStory,
+        storyAcknowledged: s.storyAcknowledged,
       }));
       return {
         id: folder.id,

@@ -58,12 +58,21 @@ function scrapeProfileGridInPage(username, pollTimeoutMs) {
 
       // A story ring is rendered as an extra <canvas> around the avatar, sized
       // and positioned larger than the <img> itself, only when a story is
-      // currently active — absent entirely otherwise (confirmed by comparing
-      // a profile with an active story against one without: no story means no
-      // <canvas> anywhere near the avatar, just the plain <img>).
+      // currently active. A bare "is there any canvas at all" check turned out
+      // to false-positive on unrelated canvases elsewhere on the page (e.g.
+      // fingerprinting/analytics canvases present on every profile regardless
+      // of story state) — so this also requires the specific ring signature we
+      // confirmed live: a small negative left/top offset (it's centered padding
+      // around a smaller avatar image, e.g. -7.5px around a 150px avatar) and
+      // an avatar-ish size, not just "some canvas exists somewhere".
       function hasActiveStoryRing() {
         const header = document.querySelector('header') || document.querySelector('main');
-        return Boolean(header?.querySelector('canvas'));
+        if (!header) return false;
+        return [...header.querySelectorAll('canvas')].some((c) => {
+          const left = Number.parseFloat(c.style.left || '0');
+          const width = Number.parseFloat(c.style.width || '0');
+          return left < -2 && left > -20 && width >= 60 && width <= 400;
+        });
       }
 
       // The grid renders client-side a moment after navigation finishes; poll briefly.

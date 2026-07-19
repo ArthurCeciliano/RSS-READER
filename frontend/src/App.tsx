@@ -211,6 +211,13 @@ export default function App() {
     }
   }
 
+  function handleStoryViewed(sourceId: string) {
+    setFolders((prev) =>
+      prev.map((f) => ({ ...f, sources: f.sources.map((s) => (s.id === sourceId ? { ...s, storyAcknowledged: true } : s)) })),
+    );
+    api.updateSource(sourceId, { storyAcknowledged: true }).catch(() => {});
+  }
+
   function handleSyncInstagram() {
     const chromeApi = (window as unknown as { chrome?: ChromeRuntime }).chrome;
     if (!chromeApi?.runtime?.sendMessage) {
@@ -298,7 +305,7 @@ export default function App() {
               searchQuery={searchQuery}
               onSearchQueryChange={setSearchQuery}
             />
-            <StoriesBar folders={folders} scope={scope} />
+            <StoriesBar folders={folders} scope={scope} onStoryViewed={handleStoryViewed} />
             <div className="app-content">
               <ItemList
                 items={items}
