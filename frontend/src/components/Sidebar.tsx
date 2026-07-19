@@ -56,7 +56,11 @@ export function Sidebar({
   pendingDmCount,
   onFoldersChanged,
 }: SidebarProps) {
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  // Tracks which folders were explicitly opened, rather than which are
+  // collapsed, so an empty set (the initial state, and the state for any
+  // folder never clicked) means "closed by default" instead of needing to
+  // know the folder list up front to pre-populate a "collapsed" set.
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [moveDialogSource, setMoveDialogSource] = useState<{ id: string; title: string } | null>(null);
   const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
@@ -66,7 +70,7 @@ export function Sidebar({
   const totalUnread = folders.reduce((sum, f) => sum + f.unreadCount, 0);
 
   function toggleFolder(id: string) {
-    setCollapsed((prev) => {
+    setExpanded((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -263,7 +267,7 @@ export function Sidebar({
 
       <div className="sidebar-tree">
         {folders.map((folder) => {
-          const isCollapsed = collapsed.has(folder.id);
+          const isCollapsed = !expanded.has(folder.id);
           const isDragOver = dragOverFolder === folder.id;
           return (
             <div key={folder.id} className="folder-block">
