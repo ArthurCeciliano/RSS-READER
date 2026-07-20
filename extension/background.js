@@ -128,7 +128,15 @@ function scrapeDmInboxInPage(pollTimeoutMs) {
           while (row && row.parentElement && !row.querySelector('img')) row = row.parentElement;
           if (!row) return;
           const avatarUrl = row.querySelector('img')?.src;
-          const previewText = (row.textContent || '').replace(senderName, '').trim();
+          // The row's text is "<preview> · <relative time>" (e.g. "Você enviou
+          // uma foto.  · 8h") -- the time half ticks over on its own (8h -> 9h)
+          // with no real new message, which made every conversation look like
+          // it had fresh content on every sync. Drop everything from the last
+          // "·" on, keeping only the part that actually changes when a new
+          // message really arrives.
+          const rawText = (row.textContent || '').replace(senderName, '').trim();
+          const dotIndex = rawText.lastIndexOf('·');
+          const previewText = (dotIndex === -1 ? rawText : rawText.slice(0, dotIndex)).trim();
           if (!previewText) return;
           seen.add(senderName);
           conversations.push({ senderName, previewText, avatarUrl });
