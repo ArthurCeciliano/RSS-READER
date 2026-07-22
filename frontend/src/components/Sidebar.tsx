@@ -2,8 +2,10 @@ import { useState } from 'react';
 import type { FolderNode, SelectedScope } from '../types';
 import { api, ApiError } from '../api/client';
 import { deleteSourceConfirm, renameSourcePrompt } from '../sourceActions';
+import { flattenFolderNodes } from '../folderTree';
 import { ContextMenu, type ContextMenuAction } from './ContextMenu';
 import { MoveToFolderDialog } from './MoveToFolderDialog';
+import { MoveFolderDialog } from './MoveFolderDialog';
 import './Sidebar.css';
 
 interface SidebarProps {
@@ -42,6 +44,146 @@ function typeIcon(type: string): string {
   }
 }
 
+interface FolderItemProps {
+  folder: FolderNode;
+  scope: SelectedScope;
+  expanded: Set<string>;
+  dragOverFolder: string | null;
+  dragOverSource: string | null;
+  onToggleFolder: (id: string) => void;
+  onSelectScope: (scope: SelectedScope) => void;
+  onSetDragOverFolder: (id: string | null) => void;
+  onSetDragOverSource: (id: string | null) => void;
+  onOpenFolderMenu: (e: React.MouseEvent, folder: FolderNode) => void;
+  onOpenSourceMenu: (e: React.MouseEvent, source: FolderNode['sources'][number]) => void;
+  onReorderFolders: (draggedId: string, targetId: string) => void;
+  onMoveSource: (sourceId: string, folderId: string | null) => void;
+  onReorderSource: (draggedSourceId: string, targetFolder: FolderNode, targetSourceId: string) => void;
+}
+
+/** Renders itself for `folder.children` so a folder can nest other folders,
+ *  not just hold sources directly — indentation comes for free from the
+ *  normal nested DOM structure (.subfolder-list/.source-list padding) rather
+ *  than computed per-depth pixel math. */
+function FolderItem({
+  folder,
+  scope,
+  expanded,
+  dragOverFolder,
+  dragOverSource,
+  onToggleFolder,
+  onSelectScope,
+  onSetDragOverFolder,
+  onSetDragOverSource,
+  onOpenFolderMenu,
+  onOpenSourceMenu,
+  onReorderFolders,
+  onMoveSource,
+  onReorderSource,
+}: FolderItemProps) {
+  const isCollapsed = !expanded.has(folder.id);
+  const isDragOver = dragOverFolder === folder.id;
+
+  return (
+    <div className="folder-block">
+      <button
+        className={`folder-row ${isDragOver ? 'drag-over' : ''}`}
+        draggable
+        onClick={() => onToggleFolder(folder.id)}
+        onContextMenu={(e) => onOpenFolderMenu(e, folder)}
+        onDragStart={(e) => e.dataTransfer.setData('text/rss-folder-id', folder.id)}
+        onDragOver={(e) => {
+          e.preventDefault();
+          onSetDragOverFolder(folder.id);
+        }}
+        onDragLeave={() => onSetDragOverFolder(null)}
+        onDrop={(e) => {
+          e.preventDefault();
+          onSetDragOverFolder(null);
+          const draggedFolderId = e.dataTransfer.getData('text/rss-folder-id');
+          if (draggedFolderId) {
+            onReorderFolders(draggedFolderId, folder.id);
+            return;
+          }
+          const sourceId = e.dataTransfer.getData('text/rss-source-id');
+          if (sourceId) onMoveSource(sourceId, folder.id);
+        }}
+      >
+        <span className={`disclosure ${isCollapsed ? 'collapsed' : ''}`}>▾</span>
+        <span
+          className="folder-name"
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelectScope({ kind: 'folder', id: folder.id, label: folder.name });
+          }}
+        >
+          {folder.name}
+        </span>
+        {folder.unreadCount > 0 && <span className="badge">{folder.unreadCount}</span>}
+      </button>
+      {!isCollapsed && (
+        <>
+          {folder.children.length > 0 && (
+            <div className="subfolder-list">
+              {folder.children.map((child) => (
+                <FolderItem
+                  key={child.id}
+                  folder={child}
+                  scope={scope}
+                  expanded={expanded}
+                  dragOverFolder={dragOverFolder}
+                  dragOverSource={dragOverSource}
+                  onToggleFolder={onToggleFolder}
+                  onSelectScope={onSelectScope}
+                  onSetDragOverFolder={onSetDragOverFolder}
+                  onSetDragOverSource={onSetDragOverSource}
+                  onOpenFolderMenu={onOpenFolderMenu}
+                  onOpenSourceMenu={onOpenSourceMenu}
+                  onReorderFolders={onReorderFolders}
+                  onMoveSource={onMoveSource}
+                  onReorderSource={onReorderSource}
+                />
+              ))}
+            </div>
+          )}
+          <div className="source-list">
+            {folder.sources.map((source) => (
+              <button
+                key={source.id}
+                draggable
+                onDragStart={(e) => e.dataTransfer.setData('text/rss-source-id', source.id)}
+                className={`source-row ${scope.kind === 'source' && scope.id === source.id ? 'active' : ''} ${dragOverSource === source.id ? 'drag-over' : ''}`}
+                onClick={() => onSelectScope({ kind: 'source', id: source.id, label: source.title })}
+                onContextMenu={(e) => onOpenSourceMenu(e, source)}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onSetDragOverSource(source.id);
+                }}
+                onDragLeave={() => onSetDragOverSource(null)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onSetDragOverSource(null);
+                  const draggedSourceId = e.dataTransfer.getData('text/rss-source-id');
+                  if (draggedSourceId) onReorderSource(draggedSourceId, folder, source.id);
+                }}
+              >
+                <span className="source-icon" aria-hidden>
+                  {typeIcon(source.type)}
+                </span>
+                <span className="source-title">{source.title}</span>
+                {source.status !== 'ok' && <span className={`status-dot ${source.status}`} title={source.status} />}
+                {source.unreadCount > 0 && <span className="badge">{source.unreadCount}</span>}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export function Sidebar({
   folders,
   scope,
@@ -63,6 +205,7 @@ export function Sidebar({
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [moveDialogSource, setMoveDialogSource] = useState<{ id: string; title: string } | null>(null);
+  const [moveDialogFolder, setMoveDialogFolder] = useState<FolderNode | null>(null);
   const [dragOverFolder, setDragOverFolder] = useState<string | null>(null);
   const [dragOverSource, setDragOverSource] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -106,12 +249,38 @@ export function Sidebar({
   }
 
   async function handleDeleteFolder(folder: FolderNode) {
-    if (!window.confirm(`Excluir a pasta "${folder.name}"? As fontes dentro dela ficam sem pasta.`)) return;
+    // Cascades in the DB: deleting a folder with subfolders deletes those too
+    // (their sources just lose their folder), not just this folder's own sources.
+    const message =
+      folder.children.length > 0
+        ? `Excluir a pasta "${folder.name}"? Isso também exclui as ${folder.children.length} subpasta(s) dentro dela (as fontes ficam sem pasta).`
+        : `Excluir a pasta "${folder.name}"? As fontes dentro dela ficam sem pasta.`;
+    if (!window.confirm(message)) return;
     try {
       await api.deleteFolder(folder.id);
       onFoldersChanged();
     } catch (err) {
       reportError(err, 'Falha ao excluir pasta.');
+    }
+  }
+
+  async function handleNewSubfolder(parentFolder: FolderNode) {
+    const name = window.prompt(`Nova subpasta dentro de "${parentFolder.name}":`);
+    if (!name?.trim()) return;
+    try {
+      await api.createFolder(name.trim(), parentFolder.id);
+      onFoldersChanged();
+    } catch (err) {
+      reportError(err, 'Falha ao criar subpasta.');
+    }
+  }
+
+  async function handleMoveFolder(folderId: string, parentId: string | null) {
+    try {
+      await api.updateFolder(folderId, { parentId });
+      onFoldersChanged();
+    } catch (err) {
+      reportError(err, 'Falha ao mover pasta.');
     }
   }
 
@@ -151,9 +320,17 @@ export function Sidebar({
   // Backend PATCH endpoints only ever write whatever sortOrder they're given —
   // nothing reindexes siblings server-side — so reordering means recomputing
   // sequential 0..n-1 values for the whole affected list and writing them all.
+  // Only reorders among siblings (same parent) -- moving a folder to a
+  // DIFFERENT parent is the separate explicit "Mover para dentro de..." action,
+  // not something a plain drag-and-drop should do implicitly.
   async function handleReorderFolders(draggedId: string, targetId: string) {
     if (draggedId === targetId) return;
-    const ids = folders.map((f) => f.id);
+    const allFolders = flattenFolderNodes(folders);
+    const dragged = allFolders.find((f) => f.id === draggedId);
+    const target = allFolders.find((f) => f.id === targetId);
+    if (!dragged || !target || dragged.parentId !== target.parentId) return;
+    const siblings = allFolders.filter((f) => f.parentId === target.parentId);
+    const ids = siblings.map((f) => f.id);
     const fromIndex = ids.indexOf(draggedId);
     const toIndex = ids.indexOf(targetId);
     if (fromIndex === -1 || toIndex === -1) return;
@@ -195,7 +372,9 @@ export function Sidebar({
       y: e.clientY,
       actions: [
         { label: 'Adicionar fonte aqui', onSelect: onAddSource },
+        { label: 'Nova subpasta aqui', onSelect: () => handleNewSubfolder(folder) },
         { label: 'Renomear pasta', onSelect: () => handleRenameFolder(folder) },
+        { label: 'Mover para dentro de...', onSelect: () => setMoveDialogFolder(folder) },
         { label: 'Atualizar agora', onSelect: () => handleRefreshFolder(folder) },
         { label: 'Excluir pasta', onSelect: () => handleDeleteFolder(folder), danger: true },
       ],
@@ -266,83 +445,25 @@ export function Sidebar({
       </nav>
 
       <div className="sidebar-tree">
-        {folders.map((folder) => {
-          const isCollapsed = !expanded.has(folder.id);
-          const isDragOver = dragOverFolder === folder.id;
-          return (
-            <div key={folder.id} className="folder-block">
-              <button
-                className={`folder-row ${isDragOver ? 'drag-over' : ''}`}
-                draggable
-                onClick={() => toggleFolder(folder.id)}
-                onContextMenu={(e) => openFolderMenu(e, folder)}
-                onDragStart={(e) => e.dataTransfer.setData('text/rss-folder-id', folder.id)}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setDragOverFolder(folder.id);
-                }}
-                onDragLeave={() => setDragOverFolder((prev) => (prev === folder.id ? null : prev))}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setDragOverFolder(null);
-                  const draggedFolderId = e.dataTransfer.getData('text/rss-folder-id');
-                  if (draggedFolderId) {
-                    handleReorderFolders(draggedFolderId, folder.id);
-                    return;
-                  }
-                  const sourceId = e.dataTransfer.getData('text/rss-source-id');
-                  if (sourceId) handleMoveSource(sourceId, folder.id);
-                }}
-              >
-                <span className={`disclosure ${isCollapsed ? 'collapsed' : ''}`}>▾</span>
-                <span
-                  className="folder-name"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSelectScope({ kind: 'folder', id: folder.id, label: folder.name });
-                  }}
-                >
-                  {folder.name}
-                </span>
-                {folder.unreadCount > 0 && <span className="badge">{folder.unreadCount}</span>}
-              </button>
-              {!isCollapsed && (
-                <div className="source-list">
-                  {folder.sources.map((source) => (
-                    <button
-                      key={source.id}
-                      draggable
-                      onDragStart={(e) => e.dataTransfer.setData('text/rss-source-id', source.id)}
-                      className={`source-row ${scope.kind === 'source' && scope.id === source.id ? 'active' : ''} ${dragOverSource === source.id ? 'drag-over' : ''}`}
-                      onClick={() => onSelectScope({ kind: 'source', id: source.id, label: source.title })}
-                      onContextMenu={(e) => openSourceMenu(e, source)}
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setDragOverSource(source.id);
-                      }}
-                      onDragLeave={() => setDragOverSource((prev) => (prev === source.id ? null : prev))}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setDragOverSource(null);
-                        const draggedSourceId = e.dataTransfer.getData('text/rss-source-id');
-                        if (draggedSourceId) handleReorderSource(draggedSourceId, folder, source.id);
-                      }}
-                    >
-                      <span className="source-icon" aria-hidden>
-                        {typeIcon(source.type)}
-                      </span>
-                      <span className="source-title">{source.title}</span>
-                      {source.status !== 'ok' && <span className={`status-dot ${source.status}`} title={source.status} />}
-                      {source.unreadCount > 0 && <span className="badge">{source.unreadCount}</span>}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {folders.map((folder) => (
+          <FolderItem
+            key={folder.id}
+            folder={folder}
+            scope={scope}
+            expanded={expanded}
+            dragOverFolder={dragOverFolder}
+            dragOverSource={dragOverSource}
+            onToggleFolder={toggleFolder}
+            onSelectScope={onSelectScope}
+            onSetDragOverFolder={setDragOverFolder}
+            onSetDragOverSource={setDragOverSource}
+            onOpenFolderMenu={openFolderMenu}
+            onOpenSourceMenu={openSourceMenu}
+            onReorderFolders={handleReorderFolders}
+            onMoveSource={handleMoveSource}
+            onReorderSource={handleReorderSource}
+          />
+        ))}
       </div>
 
       <button className="sidebar-settings-btn" onClick={onOpenSettings}>
@@ -359,6 +480,18 @@ export function Sidebar({
           onPick={(folderId) => {
             handleMoveSource(moveDialogSource.id, folderId);
             setMoveDialogSource(null);
+          }}
+        />
+      )}
+
+      {moveDialogFolder && (
+        <MoveFolderDialog
+          folders={folders}
+          folder={moveDialogFolder}
+          onClose={() => setMoveDialogFolder(null)}
+          onPick={(parentId) => {
+            handleMoveFolder(moveDialogFolder.id, parentId);
+            setMoveDialogFolder(null);
           }}
         />
       )}

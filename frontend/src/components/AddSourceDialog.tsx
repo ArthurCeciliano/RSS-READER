@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api, ApiError } from '../api/client';
+import { flattenFolders } from '../folderTree';
 import type { FolderNode, ResolveSourceResponse } from '../types';
 import './Dialog.css';
 
@@ -88,9 +89,9 @@ export function AddSourceDialog({ folders, onClose, onAdded }: AddSourceDialogPr
           <label>Pasta</label>
           <select value={folderId} onChange={(e) => setFolderId(e.target.value)}>
             <option value="">(sem pasta)</option>
-            {folders.map((f) => (
+            {flattenFolders(folders).map((f) => (
               <option key={f.id} value={f.id}>
-                {f.name}
+                {'—'.repeat(f.depth)} {f.name}
               </option>
             ))}
           </select>

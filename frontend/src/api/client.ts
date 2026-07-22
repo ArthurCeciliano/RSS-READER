@@ -48,9 +48,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   getFolders: () => request<{ folders: FolderNode[] }>('/api/folders'),
 
-  createFolder: (name: string) => request('/api/folders', { method: 'POST', body: JSON.stringify({ name }) }),
+  createFolder: (name: string, parentId?: string | null) =>
+    request('/api/folders', { method: 'POST', body: JSON.stringify({ name, parentId }) }),
 
-  updateFolder: (id: string, patch: { name?: string; sortOrder?: number }) =>
+  updateFolder: (id: string, patch: { name?: string; sortOrder?: number; parentId?: string | null }) =>
     request(`/api/folders/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
 
   deleteFolder: (id: string) => request(`/api/folders/${id}`, { method: 'DELETE' }),

@@ -17,8 +17,10 @@ export interface SourceSummary {
 export interface FolderNode {
   id: string;
   name: string;
+  parentId: string | null;
   sortOrder: number;
   sources: SourceSummary[];
+  children: FolderNode[];
   unreadCount: number;
 }
 

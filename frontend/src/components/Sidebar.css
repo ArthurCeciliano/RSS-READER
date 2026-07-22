@@ -124,7 +124,8 @@
   white-space: nowrap;
 }
 
-.source-list {
+.source-list,
+.subfolder-list {
   display: flex;
   flex-direction: column;
   padding-left: 14px;
