@@ -4,6 +4,7 @@ import { resolveSource, type HttpClient, type ResolvedSource } from '../../sourc
 import { getFeedRefreshQueue } from '../../queue/queue.js';
 import { enqueueManualRefresh } from '../../queue/producer.js';
 import { env } from '../../../config/env.js';
+import { collectFolderAndDescendantIds } from '../../folders/descendants.js';
 
 const PRISMA_UNIQUE_CONSTRAINT = 'P2002';
 
@@ -90,8 +91,9 @@ export async function sourcesRoutes(app: FastifyInstance) {
   });
 
   app.post<{ Body: { folderId?: string } }>('/api/sources/refresh-all', async (req) => {
+    const folderIds = req.body.folderId ? await collectFolderAndDescendantIds(prisma, req.body.folderId) : null;
     const sources = await prisma.source.findMany({
-      where: req.body.folderId ? { folderId: req.body.folderId } : {},
+      where: folderIds ? { folderId: { in: folderIds } } : {},
       select: { id: true },
     });
     const queue = getFeedRefreshQueue();

@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { prisma } from '../../../db/prisma.js';
 import type { Prisma } from '@prisma/client';
+import { collectFolderAndDescendantIds } from '../../folders/descendants.js';
 
 interface ListQuery {
   folderId?: string;
@@ -20,7 +21,10 @@ export async function itemsRoutes(app: FastifyInstance) {
 
     const where: Prisma.ItemWhereInput = {};
     if (sourceId) where.sourceId = sourceId;
-    if (folderId) where.source = { folderId };
+    if (folderId) {
+      const folderIds = await collectFolderAndDescendantIds(prisma, folderId);
+      where.source = { folderId: { in: folderIds } };
+    }
     if (tagId) where.tags = { some: { tagId } };
     if (filter === 'unread') where.isRead = false;
     if (filter === 'starred') where.isStarred = true;
@@ -90,7 +94,10 @@ export async function itemsRoutes(app: FastifyInstance) {
   app.post<{ Body: { folderId?: string; sourceId?: string } }>('/api/items/mark-all-read', async (req) => {
     const where: Prisma.ItemWhereInput = {};
     if (req.body.sourceId) where.sourceId = req.body.sourceId;
-    else if (req.body.folderId) where.source = { folderId: req.body.folderId };
+    else if (req.body.folderId) {
+      const folderIds = await collectFolderAndDescendantIds(prisma, req.body.folderId);
+      where.source = { folderId: { in: folderIds } };
+    }
 
     const result = await prisma.item.updateMany({ where, data: { isRead: true } });
     return { updated: result.count };
