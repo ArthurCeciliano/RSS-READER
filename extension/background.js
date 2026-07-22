@@ -72,6 +72,27 @@ function scrapeProfileGridInPage(username, pollTimeoutMs) {
         return avatarImg.parentElement?.tagName !== 'A';
       }
 
+      // TEMPORARY: two prior heuristics both false-positived heavily in
+      // practice, based on comparing just one profile with a story against
+      // one without. Logging every candidate signal here (for every profile
+      // visited this sync) so real data across many profiles -- cross-referenced
+      // against which ones actually have a story right now -- can reveal the
+      // real pattern instead of guessing from a single pair again.
+      function storyDebugInfo() {
+        const header = document.querySelector('header') || document.querySelector('main');
+        const avatarImg = header?.querySelector('img');
+        const canvases = header ? [...header.querySelectorAll('canvas')] : [];
+        const grandparent = avatarImg?.parentElement?.parentElement;
+        return {
+          hasHeader: Boolean(header),
+          avatarParentTag: avatarImg?.parentElement?.tagName ?? null,
+          avatarGrandparentTag: grandparent?.tagName ?? null,
+          avatarGrandparentClass: grandparent?.className ?? null,
+          canvasCount: canvases.length,
+          canvasStyles: canvases.map((c) => ({ left: c.style.left, top: c.style.top, width: c.style.width, height: c.style.height })),
+        };
+      }
+
       // The grid renders client-side a moment after navigation finishes; poll briefly.
       const deadline = Date.now() + pollTimeoutMs;
       let posts = collectPosts();
@@ -80,6 +101,7 @@ function scrapeProfileGridInPage(username, pollTimeoutMs) {
         posts = collectPosts();
       }
       const hasActiveStory = hasActiveStoryRing();
+      console.log(`STORYDEBUG ${username} ${JSON.stringify(storyDebugInfo())}`);
       if (posts.length === 0) {
         return {
           error: 'no posts found in the rendered page (private/empty profile, or the grid did not load in time)',
