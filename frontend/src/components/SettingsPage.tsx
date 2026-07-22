@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, ApiError, API_BASE_URL } from '../api/client';
+import { InstagramScheduleEditor } from './InstagramScheduleEditor';
 import './SettingsPage.css';
 
 type Settings = Record<string, unknown>;
@@ -144,6 +145,11 @@ export function SettingsPage() {
             uma sincronização direto, sem precisar abrir o popup da extensão.
           </p>
         </div>
+      </section>
+
+      <section className="settings-section">
+        <h2>Agendamento por pasta — Instagram</h2>
+        <InstagramScheduleEditor />
       </section>
 
       <section className="settings-section">

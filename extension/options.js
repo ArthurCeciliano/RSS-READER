@@ -1,28 +1,21 @@
 const apiBaseUrlInput = document.getElementById('apiBaseUrl');
 const apiTokenInput = document.getElementById('apiToken');
-const syncIntervalInput = document.getElementById('syncIntervalMinutes');
 const statusEl = document.getElementById('status');
-
-async function load() {
-  const { apiBaseUrl, apiToken, syncIntervalMinutes } = await chrome.storage.local.get([
-    'apiBaseUrl',
-    'apiToken',
-    'syncIntervalMinutes',
-  ]);
-  if (apiBaseUrl) apiBaseUrlInput.value = apiBaseUrl;
-  if (apiToken) apiTokenInput.value = apiToken;
-  if (syncIntervalMinutes) syncIntervalInput.value = syncIntervalMinutes;
-}
 
 function setStatus(text, kind) {
   statusEl.textContent = text;
-  statusEl.className = kind;
+  statusEl.className = kind || '';
+}
+
+async function load() {
+  const { apiBaseUrl, apiToken } = await chrome.storage.local.get(['apiBaseUrl', 'apiToken']);
+  if (apiBaseUrl) apiBaseUrlInput.value = apiBaseUrl;
+  if (apiToken) apiTokenInput.value = apiToken;
 }
 
 document.getElementById('save').addEventListener('click', async () => {
   const apiBaseUrl = apiBaseUrlInput.value.trim().replace(/\/$/, '');
   const apiToken = apiTokenInput.value.trim();
-  const syncIntervalMinutes = Math.max(15, Number(syncIntervalInput.value) || 25);
 
   let origin;
   try {
@@ -43,11 +36,9 @@ document.getElementById('save').addEventListener('click', async () => {
     return;
   }
 
-  await chrome.storage.local.set({ apiBaseUrl, apiToken, syncIntervalMinutes });
+  await chrome.storage.local.set({ apiBaseUrl, apiToken });
   await chrome.runtime.sendMessage({ type: 'reschedule' });
-  setStatus('Salvo. Sincronizando agora…', 'ok');
-  const result = await chrome.runtime.sendMessage({ type: 'sync-now' });
-  setStatus(result?.ok ? 'Salvo e sincronizado.' : 'Salvo, mas a sincronização falhou — confira o popup.', 'ok');
+  setStatus('Conexão salva. Configure os horários no app web (Configurações → Agendamento por pasta).', 'ok');
 });
 
 load();

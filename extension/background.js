@@ -1,11 +1,67 @@
-const ALARM_NAME = 'ig-sync';
-const DEFAULT_SYNC_INTERVAL_MINUTES = 25;
-const TAB_LOAD_TIMEOUT_MS = 15000;
-const GRID_POLL_TIMEOUT_MS = 8000;
+// ---------------------------------------------------------------------------
+// Folder-based Instagram scheduling.
+//
+// Instead of "sync everything that's due every 25 min" (a burst that got the
+// account rate-limited), each folder gets its own times of day. A lightweight
+// tick alarm wakes every few minutes, checks the clock, and runs AT MOST ONE
+// folder whose scheduled slot has passed — one profile at a time, widely
+// spaced. Folder membership is discovered live from GET /api/folders, so the
+// schedule always tracks the real folders with no backend changes.
+// ---------------------------------------------------------------------------
+
+const SCHEDULE_TICK_ALARM = 'ig-schedule-tick';
+const LEGACY_ALARM = 'ig-sync';
+const TICK_PERIOD_MINUTES = 10;
+
+// Daily window the auto-generated schedule spreads slots across (08:00–20:00),
+// in minutes-since-midnight, plus how many slots each folder gets per day.
+const WINDOW_START_MIN = 8 * 60;
+const WINDOW_END_MIN = 20 * 60;
+const SLOTS_PER_FOLDER = 2;
+
+const TAB_LOAD_TIMEOUT_MS = 20000;
+const GRID_POLL_TIMEOUT_MS = 12000;
+const RELOAD_RETRY_POLL_TIMEOUT_MS = 15000;
 const INBOX_POLL_TIMEOUT_MS = 8000;
+
+// Long randomized gap between profiles so a folder run is never a burst.
+const MIN_GAP_MS = 20000;
+const MAX_GAP_MS = 45000;
+
+// Per-source exponential backoff (capped) so a consistently failing profile
+// isn't re-opened every run.
+const BLOCKED_BACKOFF_BASE_MS = 30 * 60 * 1000;
+const EMPTY_BACKOFF_BASE_MS = 10 * 60 * 1000;
+const BACKOFF_MAX_MS = 12 * 60 * 60 * 1000;
+
+// Several blocks inside one folder run = the whole session is throttled, not
+// those profiles. Stop and cool the entire extension down.
+const BLOCK_THRESHOLD = 2;
+const GLOBAL_COOLDOWN_MS = 2 * 60 * 60 * 1000;
+
+// DMs piggyback on a completed folder run, but no more than once every few hours.
+const DM_MIN_INTERVAL_MS = 4 * 60 * 60 * 1000;
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function pad2(n) {
+  return String(n).padStart(2, '0');
+}
+
+function minutesToHHMM(min) {
+  const m = ((min % 1440) + 1440) % 1440;
+  return `${pad2(Math.floor(m / 60))}:${pad2(m % 60)}`;
+}
+
+function usernameFromIdentity(url) {
+  try {
+    const path = new URL(url).pathname.replace(/^\/|\/$/g, '');
+    return path.split('/')[0] || null;
+  } catch {
+    return null;
+  }
 }
 
 function waitForTabComplete(tabId) {
@@ -27,13 +83,17 @@ function waitForTabComplete(tabId) {
 
 /**
  * Runs INSIDE a real instagram.com tab via chrome.scripting.executeScript.
- * Calling Instagram's own web_profile_info endpoint ourselves — even from
- * this exact same-origin tab, with the real session — still got 429'd, while
- * the page's own normal render (doing the equivalent call internally) worked
- * every time in the same browser. So instead of guessing at whatever makes
- * that internal call "trusted", this reads the posts straight out of the
- * already-rendered grid (post links + each thumbnail's alt text) once the
- * page has loaded — no extra network request of our own at all.
+ * Reads posts straight out of the already-rendered grid (post links + each
+ * thumbnail's alt text) — no extra network request of our own, which IG 429s
+ * even from the same-origin tab with the real session.
+ *
+ * Returns one of:
+ *   { items, hasActiveStory }        -- posts read successfully
+ *   { blocked: true, reason, ... }   -- Instagram error/challenge/login wall
+ *   { empty: true, hasActiveStory }  -- loaded fine but no posts (private/empty)
+ *   { error }                        -- unexpected exception in the page
+ * The blocked/empty distinction is what lets the loop back off from a real
+ * rate-limit instead of hammering a genuinely empty profile.
  */
 function scrapeProfileGridInPage(username, pollTimeoutMs) {
   return (async () => {
@@ -41,9 +101,6 @@ function scrapeProfileGridInPage(username, pollTimeoutMs) {
       function collectPosts() {
         const seen = new Set();
         const posts = [];
-        // Post links can render as either "/p/{shortcode}/" or, inside a
-        // profile's own grid, "/{username}/p/{shortcode}/" — match "/p/" or
-        // "/reel/" anywhere in the path instead of anchoring at the start.
         document.querySelectorAll('a[href*="/p/"], a[href*="/reel/"]').forEach((a) => {
           const match = a.getAttribute('href')?.match(/\/(p|reel)\/([A-Za-z0-9_-]+)/);
           if (!match) return;
@@ -56,15 +113,29 @@ function scrapeProfileGridInPage(username, pollTimeoutMs) {
         return posts;
       }
 
-      // Canvas-presence heuristics (bare "any canvas", then "canvas with a
-      // small negative offset") both false-positived way too often in
-      // practice (~80% of profiles flagged, clearly wrong) — some other,
-      // unrelated canvas apparently matches those shapes too. The signal we
-      // actually confirmed live on two real profiles is structural instead:
-      // with no active story the avatar <img> sits directly inside a real
-      // link (<a href="/username/">); with an active story it's wrapped in a
-      // <span> instead (with a ring <canvas> alongside it, but the canvas
-      // itself isn't what's checked here anymore) -- no <a> parent is the signal.
+      // Only consulted when zero posts rendered, so caption text can't false-positive a real grid.
+      function detectBlockReason() {
+        const path = location.pathname;
+        if (path.includes('/challenge')) return 'challenge';
+        if (path.startsWith('/accounts/login')) return 'login_redirect';
+        const text = document.body?.innerText || '';
+        const markers = [
+          'Ocorreu um erro',
+          'Algo deu errado',
+          'Something went wrong',
+          'Algo salió mal',
+          'Tentar novamente',
+          'Try again',
+          'Reintentar',
+          'Recarregar a página',
+          'Reload page',
+        ];
+        if (markers.some((m) => text.includes(m))) return 'error_ui';
+        return null;
+      }
+
+      // No active story: the avatar <img> sits directly inside a real link
+      // (<a href="/username/">). With an active story it's wrapped in a <span>.
       function hasActiveStoryRing() {
         const header = document.querySelector('header') || document.querySelector('main');
         const avatarImg = header?.querySelector('img');
@@ -72,28 +143,6 @@ function scrapeProfileGridInPage(username, pollTimeoutMs) {
         return avatarImg.parentElement?.tagName !== 'A';
       }
 
-      // TEMPORARY: two prior heuristics both false-positived heavily in
-      // practice, based on comparing just one profile with a story against
-      // one without. Logging every candidate signal here (for every profile
-      // visited this sync) so real data across many profiles -- cross-referenced
-      // against which ones actually have a story right now -- can reveal the
-      // real pattern instead of guessing from a single pair again.
-      function storyDebugInfo() {
-        const header = document.querySelector('header') || document.querySelector('main');
-        const avatarImg = header?.querySelector('img');
-        const canvases = header ? [...header.querySelectorAll('canvas')] : [];
-        const grandparent = avatarImg?.parentElement?.parentElement;
-        return {
-          hasHeader: Boolean(header),
-          avatarParentTag: avatarImg?.parentElement?.tagName ?? null,
-          avatarGrandparentTag: grandparent?.tagName ?? null,
-          avatarGrandparentClass: grandparent?.className ?? null,
-          canvasCount: canvases.length,
-          canvasStyles: canvases.map((c) => ({ left: c.style.left, top: c.style.top, width: c.style.width, height: c.style.height })),
-        };
-      }
-
-      // The grid renders client-side a moment after navigation finishes; poll briefly.
       const deadline = Date.now() + pollTimeoutMs;
       let posts = collectPosts();
       while (posts.length === 0 && Date.now() < deadline) {
@@ -101,12 +150,11 @@ function scrapeProfileGridInPage(username, pollTimeoutMs) {
         posts = collectPosts();
       }
       const hasActiveStory = hasActiveStoryRing();
-      console.log(`STORYDEBUG ${username} ${JSON.stringify(storyDebugInfo())}`);
+
       if (posts.length === 0) {
-        return {
-          error: 'no posts found in the rendered page (private/empty profile, or the grid did not load in time)',
-          hasActiveStory,
-        };
+        const reason = detectBlockReason();
+        if (reason) return { blocked: true, reason, hasActiveStory };
+        return { empty: true, hasActiveStory };
       }
 
       const items = posts.map((p) => {
@@ -129,10 +177,8 @@ function scrapeProfileGridInPage(username, pollTimeoutMs) {
 }
 
 /**
- * Runs INSIDE instagram.com/direct/inbox/. There's no real per-conversation
- * link in this list (client-side-routed, no <a href>), so this only mirrors
- * the same sender + preview snippet already visible — never opens a thread
- * (which would very likely mark it "seen" for the sender).
+ * Runs INSIDE instagram.com/direct/inbox/. Mirrors the sender + preview snippet
+ * already visible — never opens a thread (which would mark it "seen").
  */
 function scrapeDmInboxInPage(pollTimeoutMs) {
   return (async () => {
@@ -144,18 +190,10 @@ function scrapeDmInboxInPage(pollTimeoutMs) {
         container.querySelectorAll('span[title]').forEach((nameSpan) => {
           const senderName = nameSpan.getAttribute('title');
           if (!senderName || seen.has(senderName)) return;
-          // Walk up from the name to the nearest ancestor that also contains
-          // the row's avatar image -- a reasonable proxy for "the whole row".
           let row = nameSpan;
           while (row && row.parentElement && !row.querySelector('img')) row = row.parentElement;
           if (!row) return;
           const avatarUrl = row.querySelector('img')?.src;
-          // The row's text is "<preview> · <relative time>" (e.g. "Você enviou
-          // uma foto.  · 8h") -- the time half ticks over on its own (8h -> 9h)
-          // with no real new message, which made every conversation look like
-          // it had fresh content on every sync. Drop everything from the last
-          // "·" on, keeping only the part that actually changes when a new
-          // message really arrives.
           const rawText = (row.textContent || '').replace(senderName, '').trim();
           const dotIndex = rawText.lastIndexOf('·');
           const previewText = (dotIndex === -1 ? rawText : rawText.slice(0, dotIndex)).trim();
@@ -180,39 +218,77 @@ function scrapeDmInboxInPage(pollTimeoutMs) {
 }
 
 async function getConfig() {
-  const { apiBaseUrl, apiToken, syncIntervalMinutes } = await chrome.storage.local.get([
-    'apiBaseUrl',
-    'apiToken',
-    'syncIntervalMinutes',
+  const { apiBaseUrl, apiToken } = await chrome.storage.local.get(['apiBaseUrl', 'apiToken']);
+  return { apiBaseUrl: apiBaseUrl || '', apiToken: apiToken || '' };
+}
+
+async function getState() {
+  const s = await chrome.storage.local.get([
+    'sourceBackoff',
+    'globalCooldownUntil',
+    'folderLastRun',
+    'folderRuns',
+    'dmLastRun',
   ]);
   return {
-    apiBaseUrl: apiBaseUrl || '',
-    apiToken: apiToken || '',
-    syncIntervalMinutes: syncIntervalMinutes || DEFAULT_SYNC_INTERVAL_MINUTES,
+    sourceBackoff: s.sourceBackoff || {},
+    globalCooldownUntil: s.globalCooldownUntil || 0,
+    folderLastRun: s.folderLastRun || {},
+    folderRuns: s.folderRuns || {},
+    dmLastRun: s.dmLastRun || 0,
   };
 }
 
-async function fetchDueSources(apiBaseUrl, apiToken) {
-  const res = await fetch(`${apiBaseUrl}/api/extension/instagram/due`, {
-    headers: { 'X-Extension-Token': apiToken },
-  });
-  if (!res.ok) throw new Error(`GET /due failed: ${res.status}`);
-  const { sources } = await res.json();
-  return sources;
+// --- API helpers -----------------------------------------------------------
+
+/** Walks GET /api/folders into a flat list of folders that hold >=1 Instagram source. */
+async function fetchIgFolders(apiBaseUrl, apiToken) {
+  const res = await fetch(`${apiBaseUrl}/api/folders`, { headers: { 'X-Extension-Token': apiToken } });
+  if (!res.ok) throw new Error(`GET /api/folders failed: ${res.status}`);
+  const { folders } = await res.json();
+  const out = [];
+  function walk(nodes, prefix) {
+    for (const n of nodes || []) {
+      const path = prefix ? `${prefix} / ${n.name}` : n.name;
+      const igSources = (n.sources || [])
+        .filter((s) => s.type === 'instagram')
+        .map((s) => ({ sourceId: s.id, username: usernameFromIdentity(s.identityUrl) }))
+        .filter((s) => s.username);
+      if (igSources.length > 0) out.push({ folderId: n.id, name: path, sources: igSources });
+      if (n.children?.length) walk(n.children, path);
+    }
+  }
+  walk(folders, '');
+  return out;
 }
 
+async function runProfileScrape(tabId, username, pollMs) {
+  const [{ result } = {}] = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: scrapeProfileGridInPage,
+    args: [username, pollMs],
+  });
+  return result || { error: 'no result from page script' };
+}
+
+/** Opens the profile, scrapes it, reloads+retries once on a transient error. */
 async function fetchInstagramProfileItems(username) {
   const tab = await chrome.tabs.create({ url: `https://www.instagram.com/${encodeURIComponent(username)}/`, active: false });
   try {
     await waitForTabComplete(tab.id);
-    const [{ result } = {}] = await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      func: scrapeProfileGridInPage,
-      args: [username, GRID_POLL_TIMEOUT_MS],
-    });
-    if (!result) throw new Error('no result from page script');
-    if (result.error) throw new Error(result.error);
-    return { items: result.items, hasActiveStory: result.hasActiveStory };
+    let result = await runProfileScrape(tab.id, username, GRID_POLL_TIMEOUT_MS);
+
+    if (!result.items && (result.blocked || result.empty)) {
+      await delay(1500 + Math.random() * 1500);
+      await chrome.tabs.reload(tab.id);
+      await waitForTabComplete(tab.id);
+      result = await runProfileScrape(tab.id, username, RELOAD_RETRY_POLL_TIMEOUT_MS);
+    }
+
+    if (result.items) return { status: 'ok', items: result.items, hasActiveStory: result.hasActiveStory };
+    if (result.blocked) return { status: 'blocked', reason: result.reason, hasActiveStory: result.hasActiveStory };
+    if (result.empty) return { status: 'empty', hasActiveStory: result.hasActiveStory };
+    return { status: 'blocked', reason: result.error || 'unknown' };
   } finally {
     await chrome.tabs.remove(tab.id).catch(() => {});
   }
@@ -255,66 +331,280 @@ async function pushDmInbox(apiBaseUrl, apiToken, conversations) {
   return res.json();
 }
 
-async function runSyncCycle() {
+// --- Scheduling ------------------------------------------------------------
+
+/** Two evenly-spread slots for folder #i of n, both inside the daily window. */
+function defaultTimesForIndex(i, n) {
+  const span = WINDOW_END_MIN - WINDOW_START_MIN; // e.g. 720 min
+  const half = Math.floor(span / SLOTS_PER_FOLDER); // gap between a folder's two slots
+  const step = n > 1 ? Math.floor(half / n) : 0; // stagger first slots across the first half
+  const first = WINDOW_START_MIN + step * i;
+  return [minutesToHHMM(first), minutesToHHMM(first + half)];
+}
+
+/** Fills in defaults for any folder without an explicit schedule, and drops removed folders. */
+function ensureScheduleDefaults(schedule, folders) {
+  const sorted = [...folders].sort((a, b) => a.name.localeCompare(b.name));
+  const next = {};
+  sorted.forEach((f, i) => {
+    const existing = schedule?.[f.folderId];
+    next[f.folderId] = existing && existing.length ? existing : defaultTimesForIndex(i, sorted.length);
+  });
+  return next;
+}
+
+/**
+ * The schedule is owned by the web app (Configurações → Agendamento por pasta),
+ * stored as the `instagramFolderSchedule` setting. The extension only reads it,
+ * so one config controls every machine. Falls back to a local cache when the
+ * server is unreachable, and fills auto-defaults for folders not configured yet
+ * (e.g. a folder created after the last save) so they still get sensible times.
+ */
+async function loadSchedule(apiBaseUrl, apiToken, folders) {
+  let serverSchedule = null;
+  try {
+    const res = await fetch(`${apiBaseUrl}/api/settings`, { headers: { 'X-Extension-Token': apiToken } });
+    if (res.ok) {
+      const settings = await res.json();
+      serverSchedule = settings.instagramFolderSchedule || {};
+    }
+  } catch {
+    /* fall back to cache below */
+  }
+
+  if (serverSchedule === null) {
+    const { folderScheduleCache } = await chrome.storage.local.get(['folderScheduleCache']);
+    serverSchedule = folderScheduleCache || {};
+  } else {
+    await chrome.storage.local.set({ folderScheduleCache: serverSchedule });
+  }
+
+  return ensureScheduleDefaults(serverSchedule, folders);
+}
+
+/** Epoch ms of the most recent scheduled slot today that has already passed, else null. */
+function lastPassedSlotToday(times, nowMs) {
+  let best = null;
+  for (const t of times) {
+    const [h, m] = t.split(':').map(Number);
+    if (Number.isNaN(h) || Number.isNaN(m)) continue;
+    const d = new Date(nowMs);
+    d.setHours(h, m, 0, 0);
+    const ts = d.getTime();
+    if (ts <= nowMs && (best === null || ts > best)) best = ts;
+  }
+  return best;
+}
+
+/** Next exponential-backoff window for a source, capped. */
+function nextBackoff(prev, now, baseMs) {
+  const failCount = (prev?.failCount || 0) + 1;
+  const delayMs = Math.min(baseMs * 2 ** (failCount - 1), BACKOFF_MAX_MS);
+  return { failCount, nextRetryAt: now + delayMs };
+}
+
+/**
+ * Runs one list of {sourceId, username} with the cautious pacing. Mutates
+ * `state.sourceBackoff` / `state.globalCooldownUntil`. Returns a summary and
+ * whether it ran to completion (false only if it tripped the global cooldown).
+ */
+async function syncSourceList(apiBaseUrl, apiToken, list, state) {
+  const results = [];
+  let blockedThisRun = 0;
+  let completed = true;
+  let newTotal = 0;
+  const now = Date.now();
+
+  const eligible = list.filter((s) => !(state.sourceBackoff[s.sourceId] && state.sourceBackoff[s.sourceId].nextRetryAt > now));
+
+  for (const { sourceId, username } of eligible) {
+    let outcome;
+    try {
+      outcome = await fetchInstagramProfileItems(username);
+    } catch (err) {
+      outcome = { status: 'blocked', reason: String(err?.message ?? err) };
+    }
+
+    if (outcome.status === 'ok') {
+      try {
+        const { newItemCount } = await pushItems(apiBaseUrl, apiToken, sourceId, outcome.items, outcome.hasActiveStory);
+        newTotal += newItemCount || 0;
+        results.push({ username, status: 'ok', newItemCount, hasActiveStory: outcome.hasActiveStory });
+        delete state.sourceBackoff[sourceId];
+      } catch (err) {
+        results.push({ username, status: 'error', error: String(err?.message ?? err) });
+      }
+    } else if (outcome.status === 'empty') {
+      results.push({ username, status: 'empty', error: 'sem posts visíveis' });
+      state.sourceBackoff[sourceId] = nextBackoff(state.sourceBackoff[sourceId], Date.now(), EMPTY_BACKOFF_BASE_MS);
+    } else {
+      blockedThisRun += 1;
+      results.push({ username, status: 'blocked', error: `bloqueado (${outcome.reason})` });
+      state.sourceBackoff[sourceId] = nextBackoff(state.sourceBackoff[sourceId], Date.now(), BLOCKED_BACKOFF_BASE_MS);
+      if (blockedThisRun >= BLOCK_THRESHOLD) {
+        state.globalCooldownUntil = Date.now() + GLOBAL_COOLDOWN_MS;
+        completed = false;
+        break;
+      }
+    }
+
+    await delay(MIN_GAP_MS + Math.random() * (MAX_GAP_MS - MIN_GAP_MS));
+  }
+
+  const okCount = results.filter((r) => r.status === 'ok').length;
+  const blockedCount = results.filter((r) => r.status === 'blocked').length;
+  const emptyCount = results.filter((r) => r.status === 'empty').length;
+  return { results, completed, newTotal, okCount, blockedCount, emptyCount, skipped: list.length - eligible.length };
+}
+
+/** Runs a single folder end-to-end and records its outcome + a compact summary. */
+async function runFolder(apiBaseUrl, apiToken, folder, state) {
+  const summary = await syncSourceList(apiBaseUrl, apiToken, folder.sources, state);
+
+  if (summary.completed) {
+    state.folderLastRun[folder.folderId] = Date.now();
+    // Piggyback DMs onto a completed run, throttled, and never right after a throttle.
+    if (state.globalCooldownUntil <= Date.now() && Date.now() - state.dmLastRun > DM_MIN_INTERVAL_MS) {
+      try {
+        const conversations = await fetchDmInbox();
+        await pushDmInbox(apiBaseUrl, apiToken, conversations);
+        state.dmLastRun = Date.now();
+      } catch {
+        /* DM scrape is best-effort; never fails a folder run. */
+      }
+    }
+  }
+
+  state.folderRuns[folder.folderId] = {
+    at: new Date().toISOString(),
+    folderName: folder.name,
+    ok: summary.okCount,
+    newTotal: summary.newTotal,
+    empty: summary.emptyCount,
+    blocked: summary.blockedCount,
+    completed: summary.completed,
+  };
+
+  await chrome.storage.local.set({
+    sourceBackoff: state.sourceBackoff,
+    globalCooldownUntil: state.globalCooldownUntil,
+    folderLastRun: state.folderLastRun,
+    folderRuns: state.folderRuns,
+    dmLastRun: state.dmLastRun,
+    lastRun: {
+      at: new Date().toISOString(),
+      folderName: folder.name,
+      error: summary.completed ? null : 'Instagram limitou a sessão — pausando por 2h',
+      results: summary.results,
+    },
+  });
+
+  return summary;
+}
+
+/** The heartbeat: pick at most one due folder and run it. */
+async function runScheduleTick() {
   const { apiBaseUrl, apiToken } = await getConfig();
   if (!apiBaseUrl || !apiToken) {
     await chrome.storage.local.set({ lastRun: { at: new Date().toISOString(), error: 'not configured', results: [] } });
     return;
   }
 
-  const results = [];
-  try {
-    const due = await fetchDueSources(apiBaseUrl, apiToken);
-    for (const { sourceId, username } of due) {
-      try {
-        const { items, hasActiveStory } = await fetchInstagramProfileItems(username);
-        const { newItemCount } = await pushItems(apiBaseUrl, apiToken, sourceId, items, hasActiveStory);
-        results.push({ username, status: 'ok', newItemCount, hasActiveStory });
-      } catch (err) {
-        results.push({ username, status: 'error', error: String(err?.message ?? err) });
-      }
-      // Small randomized gap between profiles so this never looks like a burst.
-      await delay(2000 + Math.random() * 3000);
-    }
+  const state = await getState();
+  const now = Date.now();
+  if (now < state.globalCooldownUntil) return; // session cooling down; skip silently.
 
-    try {
-      const conversations = await fetchDmInbox();
-      await pushDmInbox(apiBaseUrl, apiToken, conversations);
-      results.push({ username: '(mensagens)', status: 'ok', newItemCount: conversations.length });
-    } catch (err) {
-      results.push({ username: '(mensagens)', status: 'error', error: String(err?.message ?? err) });
-    }
+  let folders;
+  try {
+    folders = await fetchIgFolders(apiBaseUrl, apiToken);
   } catch (err) {
-    await chrome.storage.local.set({
-      lastRun: { at: new Date().toISOString(), error: String(err?.message ?? err), results },
-    });
+    await chrome.storage.local.set({ lastRun: { at: new Date().toISOString(), error: String(err?.message ?? err), results: [] } });
     return;
   }
 
-  await chrome.storage.local.set({ lastRun: { at: new Date().toISOString(), error: null, results } });
+  const schedule = await loadSchedule(apiBaseUrl, apiToken, folders);
+
+  // Among folders whose slot has passed and hasn't run since, pick the most overdue (earliest slot).
+  let pick = null;
+  let pickSlot = Infinity;
+  for (const folder of folders) {
+    const times = schedule[folder.folderId];
+    if (!times || times.length === 0) continue;
+    const slot = lastPassedSlotToday(times, now);
+    if (slot === null) continue;
+    if ((state.folderLastRun[folder.folderId] || 0) < slot && slot < pickSlot) {
+      pick = folder;
+      pickSlot = slot;
+    }
+  }
+
+  if (pick) await runFolder(apiBaseUrl, apiToken, pick, state);
 }
+
+async function syncFolderNow(folderId) {
+  const { apiBaseUrl, apiToken } = await getConfig();
+  if (!apiBaseUrl || !apiToken) return { ok: false, error: 'not configured' };
+
+  const state = await getState();
+  state.globalCooldownUntil = 0; // explicit user action clears any cooldown.
+
+  let folders;
+  try {
+    folders = await fetchIgFolders(apiBaseUrl, apiToken);
+  } catch (err) {
+    return { ok: false, error: String(err?.message ?? err) };
+  }
+  const folder = folders.find((f) => f.folderId === folderId);
+  if (!folder) return { ok: false, error: 'folder not found' };
+
+  const summary = await runFolder(apiBaseUrl, apiToken, folder, state);
+  return { ok: true, summary: { newTotal: summary.newTotal, ok: summary.okCount, blocked: summary.blockedCount } };
+}
+
+/** Folders + effective schedule + status, for the options/popup UIs. */
+async function getPlan() {
+  const { apiBaseUrl, apiToken } = await getConfig();
+  if (!apiBaseUrl || !apiToken) return { configured: false, folders: [] };
+
+  const state = await getState();
+  const folders = await fetchIgFolders(apiBaseUrl, apiToken);
+  const schedule = await loadSchedule(apiBaseUrl, apiToken, folders);
+
+  return {
+    configured: true,
+    globalCooldownUntil: state.globalCooldownUntil,
+    folders: folders.map((f) => ({
+      folderId: f.folderId,
+      name: f.name,
+      count: f.sources.length,
+      times: schedule[f.folderId] || [],
+      lastRun: state.folderRuns[f.folderId] || null,
+    })),
+  };
+}
+
+// --- Alarms & messaging ----------------------------------------------------
 
 async function scheduleAlarm() {
-  const { syncIntervalMinutes } = await getConfig();
-  await chrome.alarms.create(ALARM_NAME, { periodInMinutes: syncIntervalMinutes, delayInMinutes: 1 });
+  await chrome.alarms.clear(LEGACY_ALARM).catch(() => {});
+  await chrome.alarms.create(SCHEDULE_TICK_ALARM, { periodInMinutes: TICK_PERIOD_MINUTES, delayInMinutes: 1 });
 }
 
-chrome.runtime.onInstalled.addListener(() => {
-  scheduleAlarm();
-});
-
-chrome.runtime.onStartup.addListener(() => {
-  scheduleAlarm();
-});
+chrome.runtime.onInstalled.addListener(scheduleAlarm);
+chrome.runtime.onStartup.addListener(scheduleAlarm);
 
 chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === ALARM_NAME) runSyncCycle();
+  if (alarm.name === SCHEDULE_TICK_ALARM) runScheduleTick();
 });
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message?.type === 'sync-now') {
-    runSyncCycle().then(() => sendResponse({ ok: true }));
-    return true; // keep the message channel open for the async response
+  if (message?.type === 'get-plan') {
+    getPlan().then((plan) => sendResponse(plan)).catch((err) => sendResponse({ configured: false, error: String(err?.message ?? err), folders: [] }));
+    return true;
+  }
+  if (message?.type === 'sync-folder') {
+    syncFolderNow(message.folderId).then((r) => sendResponse(r));
+    return true;
   }
   if (message?.type === 'reschedule') {
     scheduleAlarm().then(() => sendResponse({ ok: true }));
@@ -323,11 +613,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   return undefined;
 });
 
-// Lets the RSS Reader web page itself (origin declared in
-// externally_connectable above) trigger a sync without opening the popup.
+// Lets the RSS Reader web page (externally_connectable) trigger a folder sync.
 chrome.runtime.onMessageExternal.addListener((message, _sender, sendResponse) => {
-  if (message?.type === 'sync-now') {
-    runSyncCycle().then(() => sendResponse({ ok: true }));
+  if (message?.type === 'sync-folder' && message.folderId) {
+    syncFolderNow(message.folderId).then((r) => sendResponse(r));
     return true;
   }
   return undefined;

@@ -53,6 +53,14 @@
       #status.error {
         color: #f87171;
       }
+      .note {
+        margin-top: 22px;
+        padding-top: 16px;
+        border-top: 1px solid #26262f;
+        font-size: 12.5px;
+        color: #a1a1aa;
+        line-height: 1.55;
+      }
     </style>
   </head>
   <body>
@@ -63,12 +71,13 @@
     <label for="apiToken">Token</label>
     <input id="apiToken" type="text" placeholder="cole o token daqui" />
 
-    <label for="syncIntervalMinutes">Intervalo de sincronização (minutos)</label>
-    <input id="syncIntervalMinutes" type="number" min="15" value="25" />
-
-    <button id="save">Salvar</button>
+    <button id="save">Salvar conexão</button>
     <div id="status"></div>
 
-    <script src="options.js"></script>
+    <p class="note">
+      <strong>Horários das pastas</strong> são configurados no app web, em
+      <em>Configurações → Agendamento por pasta — Instagram</em>. A extensão só lê de lá, então basta configurar uma vez
+      e vale para todas as máquinas. Aqui você só precisa manter a URL e o token corretos.
+    </p>
   </body>
 </html>

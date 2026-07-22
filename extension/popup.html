@@ -8,7 +8,7 @@
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         background: #16161c;
         color: #e4e4e7;
-        width: 300px;
+        width: 340px;
         padding: 14px;
         margin: 0;
       }
@@ -16,45 +16,71 @@
         font-size: 13px;
         margin: 0 0 10px;
       }
-      button {
-        width: 100%;
-        background: #6d5ce7;
-        color: #fff;
-        border: none;
+      #cooldown {
+        background: #3a2a1a;
+        color: #fbbf24;
         border-radius: 6px;
-        padding: 8px;
-        font-size: 13px;
-        cursor: pointer;
-      }
-      button:disabled {
-        opacity: 0.5;
-        cursor: default;
-      }
-      #lastRun {
-        margin-top: 10px;
+        padding: 7px 9px;
         font-size: 11.5px;
+        margin-bottom: 10px;
+        display: none;
+      }
+      #msg {
+        font-size: 12px;
         color: #a1a1aa;
       }
       ul {
         list-style: none;
         padding: 0;
-        margin: 8px 0 0;
-        font-size: 12px;
-        max-height: 180px;
+        margin: 0;
+        max-height: 340px;
         overflow-y: auto;
       }
-      li {
+      li.folder {
+        padding: 8px 0;
+        border-bottom: 1px solid #26262f;
+      }
+      .folder-top {
         display: flex;
         justify-content: space-between;
+        align-items: center;
         gap: 8px;
-        padding: 3px 0;
-        border-bottom: 1px solid #26262f;
+      }
+      .folder-name {
+        font-size: 12.5px;
+        font-weight: 600;
+      }
+      .folder-meta {
+        font-size: 11px;
+        color: #71717a;
+        margin-top: 2px;
+      }
+      .folder-last {
+        font-size: 11px;
+        margin-top: 3px;
       }
       .ok {
         color: #4ade80;
       }
       .error {
         color: #f87171;
+      }
+      .muted {
+        color: #71717a;
+      }
+      button.sync {
+        background: #6d5ce7;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        padding: 5px 10px;
+        font-size: 11.5px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      button.sync:disabled {
+        opacity: 0.5;
+        cursor: default;
       }
       a {
         color: #a1a1ff;
@@ -63,10 +89,10 @@
   </head>
   <body>
     <h1>RSS Reader - Instagram Bridge</h1>
-    <button id="syncNow">Sincronizar agora</button>
-    <div id="lastRun">carregando…</div>
-    <ul id="results"></ul>
-    <p style="margin-top: 10px; font-size: 11px"><a href="options.html" target="_blank">Opções</a></p>
+    <div id="cooldown"></div>
+    <div id="msg">carregando…</div>
+    <ul id="folders"></ul>
+    <p style="margin-top: 10px; font-size: 11px"><a href="options.html" target="_blank">Opções e horários</a></p>
     <script src="popup.js"></script>
   </body>
 </html>

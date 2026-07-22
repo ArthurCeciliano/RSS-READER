@@ -122,3 +122,57 @@
   opacity: 0.5;
   cursor: default;
 }
+
+/* Instagram per-folder schedule editor */
+.ig-schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.ig-schedule-table th {
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.ig-schedule-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: middle;
+}
+
+.ig-schedule-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ig-schedule-table input[type='time'] {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  border-radius: 5px;
+  padding: 5px 7px;
+  font-size: 12.5px;
+}
+
+.ig-schedule button {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  border-radius: 6px;
+  padding: 9px 18px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.ig-schedule button.save-btn {
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  margin-top: 0;
+}
