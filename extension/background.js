@@ -331,6 +331,26 @@ async function pushDmInbox(apiBaseUrl, apiToken, conversations) {
   return res.json();
 }
 
+/** Fire-and-forget telemetry for the risk dashboard — never fails a folder run. */
+async function reportReadLog(apiBaseUrl, apiToken, folder, summary) {
+  try {
+    await fetch(`${apiBaseUrl}/api/extension/instagram/read-log`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Extension-Token': apiToken },
+      body: JSON.stringify({
+        folderId: folder.folderId,
+        folderName: folder.name,
+        ok: summary.okCount,
+        empty: summary.emptyCount,
+        blocked: summary.blockedCount,
+        newItems: summary.newTotal,
+      }),
+    });
+  } catch {
+    /* telemetry is best-effort */
+  }
+}
+
 // --- Scheduling ------------------------------------------------------------
 
 /** Two evenly-spread slots for folder #i of n, both inside the daily window. */
@@ -460,6 +480,11 @@ async function syncSourceList(apiBaseUrl, apiToken, list, state) {
 /** Runs a single folder end-to-end and records its outcome + a compact summary. */
 async function runFolder(apiBaseUrl, apiToken, folder, state) {
   const summary = await syncSourceList(apiBaseUrl, apiToken, folder.sources, state);
+
+  // Telemetry for the risk dashboard: report the actual reads this run made.
+  if (summary.okCount + summary.emptyCount + summary.blockedCount > 0) {
+    await reportReadLog(apiBaseUrl, apiToken, folder, summary);
+  }
 
   if (summary.completed) {
     state.folderLastRun[folder.folderId] = Date.now();

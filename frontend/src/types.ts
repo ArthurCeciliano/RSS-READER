@@ -121,3 +121,26 @@ export interface SourceHealth {
   consecutiveFails: number;
   lastError: string | null;
 }
+
+export type RiskLevel = 'safe' | 'attention' | 'risk';
+export type FolderSignal = 'ok' | 'high' | 'problem';
+
+export interface InstagramRiskStats {
+  hasData: boolean;
+  updatedAt: string | null;
+  today: { reads: number; ok: number; empty: number; blocked: number };
+  blocks48h: number;
+  risk: { level: RiskLevel; label: string; reason: string };
+  daily: Array<{ date: string; reads: number; blocked: number; empty: number }>;
+  folders: Array<{
+    folderId: string;
+    name: string;
+    profiles: number;
+    reads7d: number;
+    empty7d: number;
+    blocked7d: number;
+    signal: FolderSignal;
+    note: string;
+  }>;
+  thresholds: { safePerDay: number; attentionPerDay: number };
+}

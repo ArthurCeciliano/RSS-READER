@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/client';
+import { InstagramRiskPanel } from './InstagramRiskPanel';
 import './StatsPage.css';
 
 interface StatsData {
@@ -127,6 +128,8 @@ export function StatsPage() {
         <TopSourcesChart data={stats.topSources} />
         <ReadRateMeter readRate={stats.readRate} />
       </div>
+
+      <InstagramRiskPanel />
     </div>
   );
 }

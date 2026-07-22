@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { prisma } from '../../../db/prisma.js';
+import { computeInstagramStats } from '../../instagram/readStats.js';
 
 interface StatsQuery {
   days?: string;
@@ -64,4 +65,6 @@ export async function statsRoutes(app: FastifyInstance) {
       folderCount,
     };
   });
+
+  app.get('/api/stats/instagram', async () => computeInstagramStats(prisma));
 }

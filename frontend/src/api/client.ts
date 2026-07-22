@@ -1,6 +1,7 @@
 import type {
   FeedItem,
   FolderNode,
+  InstagramRiskStats,
   ItemFilter,
   ResolvedSourcePayload,
   ResolveSourceResponse,
@@ -144,6 +145,8 @@ export const api = {
       sourceCount: number;
       folderCount: number;
     }>(`/api/stats?days=${days}`),
+
+  getInstagramStats: () => request<InstagramRiskStats>('/api/stats/instagram'),
 
   getRules: () => request<{ rules: Rule[] }>('/api/rules'),
 

@@ -4,6 +4,7 @@ import { verifyExtensionToken } from '../extensionAuth.js';
 import { extractInstagramUsername } from '../../sources/instagramUsername.js';
 import { finalizeSuccessfulIngest } from '../../feeds/ingest.js';
 import type { ParsedFeedItem } from '../../feeds/feedParser.js';
+import { recordReadRun } from '../../instagram/readStats.js';
 
 interface ExtensionPushItem {
   guid: string;
@@ -87,6 +88,28 @@ export async function extensionRoutes(app: FastifyInstance) {
       }
 
       return { newItemCount };
+    },
+  );
+
+  // Records one folder run's read outcomes (ok/empty/blocked counts) for the
+  // risk dashboard in Estatísticas. Fire-and-forget from the extension's side —
+  // purely telemetry, never affects ingestion.
+  app.post<{ Body: { folderId?: string; folderName?: string; ok?: number; empty?: number; blocked?: number; newItems?: number } }>(
+    '/api/extension/instagram/read-log',
+    async (req, reply) => {
+      const { folderId, folderName, ok, empty, blocked, newItems } = req.body ?? {};
+      if (!folderId || typeof folderName !== 'string') {
+        return reply.code(400).send({ error: 'folderId and folderName are required' });
+      }
+      await recordReadRun(prisma, {
+        folderId,
+        folderName,
+        ok: Number(ok) || 0,
+        empty: Number(empty) || 0,
+        blocked: Number(blocked) || 0,
+        newItems: Number(newItems) || 0,
+      });
+      return { ok: true };
     },
   );
 
