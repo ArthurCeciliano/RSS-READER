@@ -174,4 +174,6 @@ export const api = {
     ),
 
   ackDmPreview: (id: string) => request(`/api/dm-previews/${id}/ack`, { method: 'POST' }),
+
+  ackAllDmPreviews: () => request<{ updated: number }>('/api/dm-previews/ack-all', { method: 'POST' }),
 };

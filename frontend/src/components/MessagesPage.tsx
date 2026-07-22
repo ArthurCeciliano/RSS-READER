@@ -27,12 +27,23 @@ export function MessagesPage({ onChanged }: { onChanged: () => void }) {
     onChanged();
   }
 
+  async function ackAll() {
+    await api.ackAllDmPreviews();
+    setPreviews([]);
+    onChanged();
+  }
+
   return (
     <div className="messages-page">
       <p className="messages-hint">
         Prévias de mensagens do Instagram detectadas pela extensão — sem link direto pra conversa (só o Instagram tem
         isso), então clicar abre a caixa de entrada geral e marca como vista aqui.
       </p>
+      {previews.length > 0 && (
+        <button className="messages-ack-all" onClick={ackAll}>
+          Marcar todas como vistas
+        </button>
+      )}
       {previews.length === 0 && <p className="messages-empty">Nenhuma mensagem nova no momento.</p>}
       <div className="messages-list">
         {previews.map((p) => (
