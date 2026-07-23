@@ -42,8 +42,28 @@ const GLOBAL_COOLDOWN_MS = 2 * 60 * 60 * 1000;
 // DMs piggyback on a completed folder run, but no more than once every few hours.
 const DM_MIN_INTERVAL_MS = 4 * 60 * 60 * 1000;
 
-function delay(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+// A bare setTimeout does NOT count as activity for an MV3 background service
+// worker — Chrome can and does kill it after ~30s of no chrome.* API calls,
+// which lands right inside the 20-45s gaps this loop waits between profiles.
+// When that happens mid-folder, the run silently stops: no more tabs open,
+// and folderRuns/lastRun (what the popup shows) never gets written because
+// that only happens at the very end of a completed run — so the popup keeps
+// showing "ainda não sincronizou" forever even though it clearly ran partway.
+// Chopping the wait into short chunks with a trivial chrome.storage call
+// between them resets Chrome's idle timer throughout the wait, so the worker
+// survives to actually finish the folder.
+const KEEPALIVE_CHUNK_MS = 15000;
+
+async function delay(ms) {
+  let remaining = ms;
+  while (remaining > 0) {
+    const step = Math.min(KEEPALIVE_CHUNK_MS, remaining);
+    await new Promise((resolve) => setTimeout(resolve, step));
+    remaining -= step;
+    if (remaining > 0) {
+      await chrome.storage.local.get('folderLastRun').catch(() => {});
+    }
+  }
 }
 
 function pad2(n) {
