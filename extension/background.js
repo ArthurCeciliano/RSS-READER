@@ -304,6 +304,31 @@ async function pushItems(apiBaseUrl, apiToken, sourceId, items, hasActiveStory) 
   return res.json();
 }
 
+/**
+ * Cross-device guard, checked right before opening any Instagram tab for a
+ * folder. The schedule is shared server-side, but this extension can be
+ * installed on more than one browser/machine, each ticking independently —
+ * without this, two devices (or a service-worker restart racing the next
+ * tick on the same device) can both decide "this folder's slot has passed"
+ * within minutes of each other and double up the traffic to it. Fails OPEN
+ * (treated as claimed) on any network/HTTP error, including a 404 from an
+ * older backend that hasn't picked up this route yet — the per-device guard
+ * in runScheduleTick/syncFolderNow already covers that case locally.
+ */
+async function claimFolderRunOnServer(apiBaseUrl, apiToken, folderId) {
+  try {
+    const res = await fetch(`${apiBaseUrl}/api/extension/instagram/folders/${encodeURIComponent(folderId)}/claim-run`, {
+      method: 'POST',
+      headers: { 'X-Extension-Token': apiToken },
+    });
+    if (!res.ok) return true;
+    const { claimed } = await res.json();
+    return claimed !== false;
+  } catch {
+    return true;
+  }
+}
+
 async function fetchDmInbox() {
   const tab = await chrome.tabs.create({ url: 'https://www.instagram.com/direct/inbox/', active: false });
   try {
@@ -563,7 +588,20 @@ async function runScheduleTick() {
     }
   }
 
-  if (pick) await runFolder(apiBaseUrl, apiToken, pick, state);
+  if (!pick) return;
+
+  // Mark this slot as handled by THIS device immediately — persisted before
+  // any tab opens — so a service-worker restart mid-run (Chrome can kill an
+  // MV3 background script during the plain setTimeout gaps between profiles,
+  // since that's not a chrome.* call that keeps it alive) doesn't make the
+  // next 10-minute tick think the slot is still pending and reopen profiles
+  // we just visited. Marked unconditionally, whether or not the run below
+  // actually goes ahead, so this device never re-asks for the same slot.
+  state.folderLastRun[pick.folderId] = now;
+  await chrome.storage.local.set({ folderLastRun: state.folderLastRun });
+
+  const claimed = await claimFolderRunOnServer(apiBaseUrl, apiToken, pick.folderId);
+  if (claimed) await runFolder(apiBaseUrl, apiToken, pick, state);
 }
 
 async function syncFolderNow(folderId) {
@@ -581,6 +619,12 @@ async function syncFolderNow(folderId) {
   }
   const folder = folders.find((f) => f.folderId === folderId);
   if (!folder) return { ok: false, error: 'folder not found' };
+
+  // Same cross-device guard as the scheduled path: a manual "Sincronizar"
+  // click on one device shouldn't double up with another device's click (or
+  // its own scheduled run) landing around the same time.
+  const claimed = await claimFolderRunOnServer(apiBaseUrl, apiToken, folderId);
+  if (!claimed) return { ok: false, error: 'já sincronizando em outro dispositivo/sessão — tenta de novo em alguns minutos' };
 
   const summary = await runFolder(apiBaseUrl, apiToken, folder, state);
   return { ok: true, summary: { newTotal: summary.newTotal, ok: summary.okCount, blocked: summary.blockedCount } };

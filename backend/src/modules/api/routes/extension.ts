@@ -5,6 +5,7 @@ import { extractInstagramUsername } from '../../sources/instagramUsername.js';
 import { finalizeSuccessfulIngest } from '../../feeds/ingest.js';
 import type { ParsedFeedItem } from '../../feeds/feedParser.js';
 import { recordReadRun } from '../../instagram/readStats.js';
+import { claimFolderRun } from '../../instagram/folderRunLock.js';
 
 interface ExtensionPushItem {
   guid: string;
@@ -90,6 +91,16 @@ export async function extensionRoutes(app: FastifyInstance) {
       return { newItemCount };
     },
   );
+
+  // Cross-device guard: called by the extension right before it opens any
+  // Instagram tab for a folder. If another browser/machine (or an earlier,
+  // still-fresh attempt) already holds this folder, claimed:false tells the
+  // caller to back off instead of piling more traffic onto it — see
+  // modules/instagram/folderRunLock.ts for why this exists.
+  app.post<{ Params: { folderId: string } }>('/api/extension/instagram/folders/:folderId/claim-run', async (req) => {
+    const claimed = await claimFolderRun(prisma, req.params.folderId);
+    return { claimed };
+  });
 
   // Records one folder run's read outcomes (ok/empty/blocked counts) for the
   // risk dashboard in Estatísticas. Fire-and-forget from the extension's side —
