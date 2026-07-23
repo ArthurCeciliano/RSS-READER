@@ -19,12 +19,13 @@ function lastRunText(last) {
   if (last.ok > 0) parts.push(`${last.ok} ok`);
   if (last.empty > 0) parts.push(`${last.empty} vazio(s)`);
   if (last.blocked > 0) parts.push(`${last.blocked} bloq.`);
+  if (last.noSeed > 0) parts.push(`${last.noSeed} sem semente`);
   const body = parts.length ? parts.join(' · ') : 'nada novo';
   const cls = last.blocked > 0 || !last.completed ? 'error' : 'ok';
   return { text: `${body} — ${timeAgo(last.at)}`, cls };
 }
 
-function renderFolder(f) {
+function renderFolder(f, active) {
   const li = document.createElement('li');
   li.className = 'folder';
 
@@ -36,25 +37,45 @@ function renderFolder(f) {
     `<div class="folder-name">${f.name}</div>` +
     `<div class="folder-meta">${f.count} perfil(is) · ${(f.times || []).join(' · ') || 'sem horário'}</div>`;
 
+  const isActive = active && active.folderId === f.folderId;
   const btn = document.createElement('button');
   btn.className = 'sync';
-  btn.textContent = 'Sincronizar';
+  btn.disabled = Boolean(active);
+  btn.textContent = isActive ? 'Em andamento…' : 'Sincronizar';
   btn.addEventListener('click', async () => {
     btn.disabled = true;
-    btn.textContent = 'Sincronizando…';
+    btn.textContent = 'Lendo 1º perfil…';
     try {
-      await chrome.runtime.sendMessage({ type: 'sync-folder', folderId: f.folderId });
+      const r = await chrome.runtime.sendMessage({ type: 'sync-folder', folderId: f.folderId });
+      if (r && r.ok === false) {
+        msgEl.textContent = r.error || 'Não foi possível iniciar.';
+      } else if (r && r.first) {
+        const p = r.first;
+        const bits = [];
+        if (p.newTotal) bits.push(`${p.newTotal} novo(s)`);
+        if (p.ok) bits.push('leu ok');
+        if (p.blocked) bits.push('bloqueado');
+        if (p.empty) bits.push('vazio');
+        if (p.noSeed) bits.push('sem semente');
+        msgEl.textContent = `1º perfil: ${bits.join(' · ') || 'ok'}${r.started ? ' · resto em segundo plano' : ''}`;
+      }
     } finally {
-      load();
+      setTimeout(load, 900);
     }
   });
 
   top.append(left, btn);
 
   const last = document.createElement('div');
-  const { text, cls } = lastRunText(f.lastRun);
-  last.className = `folder-last ${cls}`;
-  last.textContent = text;
+  if (isActive) {
+    last.className = 'folder-last ok';
+    const prog = active.progress ? ` (${active.progress.index}/${active.progress.total})` : '';
+    last.textContent = `sincronizando${prog}… 1 perfil a cada 1–3 min`;
+  } else {
+    const { text, cls } = lastRunText(f.lastRun);
+    last.className = `folder-last ${cls}`;
+    last.textContent = text;
+  }
 
   li.append(top, last);
   return li;
@@ -93,9 +114,12 @@ async function load() {
     return;
   }
 
-  msgEl.textContent = `${plan.folders.length} pasta(s) · atualização 3x/dia por pasta`;
+  const active = plan.activeFolderId ? { folderId: plan.activeFolderId, progress: plan.activeProgress } : null;
+  if (!active || msgEl.textContent === 'carregando…') {
+    msgEl.textContent = active ? 'Sincronização em andamento…' : `${plan.folders.length} pasta(s) · 3x/dia por pasta`;
+  }
   foldersEl.innerHTML = '';
-  for (const f of plan.folders) foldersEl.appendChild(renderFolder(f));
+  for (const f of plan.folders) foldersEl.appendChild(renderFolder(f, active));
 }
 
 load();
