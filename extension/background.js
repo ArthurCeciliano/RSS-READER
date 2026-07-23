@@ -313,17 +313,22 @@ async function claimFolderRunOnServer(apiBaseUrl, apiToken, folderId) {
 }
 
 async function runPostScrape(tabId, username, pollMs) {
-  const [{ result } = {}] = await chrome.scripting.executeScript({
-    target: { tabId },
-    func: scrapePostPageInPage,
-    args: [username, pollMs],
-  });
+  // Hard cap so a hung executeScript can never leave the tab open forever —
+  // whatever happens, this resolves within pollMs + 8s and the caller's finally
+  // closes the tab.
+  const exec = chrome.scripting
+    .executeScript({ target: { tabId }, func: scrapePostPageInPage, args: [username, pollMs] })
+    .then((r) => (r && r[0] ? r[0].result : undefined))
+    .catch((err) => ({ error: String(err?.message ?? err) }));
+  const timeout = new Promise((resolve) => setTimeout(() => resolve({ error: 'scrape_timeout' }), pollMs + 8000));
+  const result = await Promise.race([exec, timeout]);
   return result || { error: 'no result from page script' };
 }
 
 /** Opens one known post page, reads its "more posts" grid. Reloads once ONLY on
  *  `empty` (slow grid) — never on a block or unavailable post. */
 async function fetchViaPostPage(username, shortcode) {
+  console.log(`[IG] abrindo post ${shortcode} de @${username}`);
   const tab = await openIgTab(`https://www.instagram.com/p/${shortcode}/`);
   try {
     await waitForTabComplete(tab.id);
@@ -341,6 +346,7 @@ async function fetchViaPostPage(username, shortcode) {
     return { status: 'blocked', reason: result.error || 'unknown' };
   } finally {
     await closeIgTab(tab.id);
+    console.log(`[IG] fechou post ${shortcode}`);
   }
 }
 
