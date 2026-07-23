@@ -52,6 +52,11 @@ const GLOBAL_COOLDOWN_MS = 90 * 60 * 1000;
 
 const DM_MIN_INTERVAL_MS = 4 * 60 * 60 * 1000;
 
+// DMs are the only feature that still needs Instagram directly. While detection
+// runs "Google-only" (to keep the account fully clear of IG), keep this off.
+// Flip to true to re-enable the Mensagens sync once the account is healthy.
+const ENABLE_DM_INBOX = false;
+
 // Abandon a work queue that clearly stalled so the scheduler isn't blocked.
 const MAX_RUN_MS = 2 * 60 * 60 * 1000;
 
@@ -96,12 +101,12 @@ function waitForTabComplete(tabId) {
 
 // --- Tab bookkeeping (so a killed step's orphan tab gets cleaned up) --------
 
-async function openIgTab(url) {
+async function openTrackedTab(url) {
   const tab = await chrome.tabs.create({ url, active: false });
   await chrome.storage.local.set({ openTabId: tab.id });
   return tab;
 }
-async function closeIgTab(tabId) {
+async function closeTrackedTab(tabId) {
   await chrome.tabs.remove(tabId).catch(() => {});
   const { openTabId } = await chrome.storage.local.get('openTabId');
   if (openTabId === tabId) await chrome.storage.local.remove('openTabId');
@@ -190,6 +195,81 @@ function scrapePostPageInPage(username, pollTimeoutMs) {
         };
       });
       return { items, hasActiveStory };
+    } catch (err) {
+      return { error: String(err?.message ?? err) };
+    }
+  })();
+}
+
+/**
+ * Runs on a Google results page (google.com/search?q={user}+instagram&tbs=qdr:w).
+ * Google indexes Instagram posts, so we detect new ones HERE — off Instagram's
+ * rate-limited surface. Critically: results are mixed-owner (mentions, other
+ * accounts), so we keep ONLY posts whose "Instagram · {owner}" label matches the
+ * target username — his own posts, never someone else's action about him.
+ */
+function scrapeGoogleResultsInPage(username, pollTimeoutMs) {
+  return (async () => {
+    const target = String(username || '').toLowerCase();
+    try {
+      function detectCaptcha() {
+        const t = (document.body?.innerText || '').toLowerCase();
+        return (
+          location.pathname.includes('/sorry') ||
+          /unusual traffic|tráfego incomum|not a robot|sistemas detectaram|recaptcha|sou um rob/i.test(t)
+        );
+      }
+      function collect() {
+        const seen = new Set();
+        const out = [];
+        for (const a of document.querySelectorAll('a[href]')) {
+          const href = a.href || '';
+          const m = href.match(/instagram\.com\/(?:[^/]+\/)?(p|reel)\/([A-Za-z0-9_-]+)/);
+          if (!m) continue;
+          const shortcode = m[2];
+          if (seen.has(shortcode)) continue;
+          // Walk up to the result card and read its "Instagram · owner" label.
+          let container = a;
+          let owner = null;
+          for (let i = 0; i < 8 && container; i++) {
+            const mm = (container.innerText || '').match(/Instagram\s*[·•]\s*([A-Za-z0-9_.]+)/);
+            if (mm) {
+              owner = mm[1].toLowerCase();
+              break;
+            }
+            container = container.parentElement;
+          }
+          if (owner !== target) continue; // assertive: only the profile OWNER's posts
+          seen.add(shortcode);
+          const h3 = container && container.querySelector('h3');
+          const caption = ((h3 && h3.textContent) || a.textContent || '').trim().replace(/Instagram\s*[·•].*$/, '').trim();
+          out.push({ shortcode, caption: caption.slice(0, 300) });
+        }
+        return out;
+      }
+
+      const deadline = Date.now() + pollTimeoutMs;
+      let posts = collect();
+      while (posts.length === 0 && Date.now() < deadline) {
+        if (detectCaptcha()) return { blocked: true, reason: 'google_captcha' };
+        await new Promise((r) => setTimeout(r, 500));
+        posts = collect();
+      }
+      if (posts.length === 0) {
+        if (detectCaptcha()) return { blocked: true, reason: 'google_captcha' };
+        return { empty: true };
+      }
+      const items = posts.map((p) => {
+        const firstLine = p.caption ? p.caption.split('\n', 1)[0] : '';
+        return {
+          guid: p.shortcode,
+          link: `https://www.instagram.com/p/${p.shortcode}/`,
+          title: firstLine ? firstLine.slice(0, 120) : p.caption ? p.caption.slice(0, 120) : '(sem legenda)',
+          summary: p.caption,
+          author: username,
+        };
+      });
+      return { items };
     } catch (err) {
       return { error: String(err?.message ?? err) };
     }
@@ -329,7 +409,7 @@ async function runPostScrape(tabId, username, pollMs) {
  *  `empty` (slow grid) — never on a block or unavailable post. */
 async function fetchViaPostPage(username, shortcode) {
   console.log(`[IG] abrindo post ${shortcode} de @${username}`);
-  const tab = await openIgTab(`https://www.instagram.com/p/${shortcode}/`);
+  const tab = await openTrackedTab(`https://www.instagram.com/p/${shortcode}/`);
   try {
     await waitForTabComplete(tab.id);
     let result = await runPostScrape(tab.id, username, GRID_POLL_TIMEOUT_MS);
@@ -345,22 +425,49 @@ async function fetchViaPostPage(username, shortcode) {
     if (result.empty) return { status: 'empty', hasActiveStory: result.hasActiveStory };
     return { status: 'blocked', reason: result.error || 'unknown' };
   } finally {
-    await closeIgTab(tab.id);
+    await closeTrackedTab(tab.id);
     console.log(`[IG] fechou post ${shortcode}`);
   }
 }
 
-/** Reads a source via its recent post pages in order. NEVER opens the profile:
- *  a source with no seed is reported as no_seed instead. */
-async function fetchIgItems(username, seeds) {
-  const codes = seeds || [];
-  if (codes.length === 0) return { status: 'no_seed' };
-  for (const shortcode of codes) {
-    const res = await fetchViaPostPage(username, shortcode);
-    if (res.status === 'ok' || res.status === 'blocked') return res;
-    // 'unavailable' or 'empty' -> try the next seed
+async function runGoogleScrape(tabId, username, pollMs) {
+  const exec = chrome.scripting
+    .executeScript({ target: { tabId }, func: scrapeGoogleResultsInPage, args: [username, pollMs] })
+    .then((r) => (r && r[0] ? r[0].result : undefined))
+    .catch((err) => ({ error: String(err?.message ?? err) }));
+  const timeout = new Promise((resolve) => setTimeout(() => resolve({ error: 'scrape_timeout' }), pollMs + 8000));
+  return (await Promise.race([exec, timeout])) || { error: 'no result from page script' };
+}
+
+/** Detects new posts via a Google search (owner-filtered), never touching
+ *  Instagram. Pushes all of the owner's indexed posts; the server dedups so only
+ *  genuinely new ones are ingested. */
+async function fetchViaGoogle(username) {
+  console.log(`[GG] buscando @${username} no Google`);
+  const q = encodeURIComponent(`${username} instagram`);
+  const tab = await openTrackedTab(`https://www.google.com/search?q=${q}&tbs=qdr:w&hl=pt-BR`);
+  try {
+    await waitForTabComplete(tab.id);
+    const result = await runGoogleScrape(tab.id, username, GRID_POLL_TIMEOUT_MS);
+    if (result.items && result.items.length) {
+      console.log(`[GG] @${username}: ${result.items.length} post(s) do dono`);
+      return { status: 'ok', items: result.items };
+    }
+    if (result.blocked) return { status: 'blocked', reason: result.reason };
+    return { status: 'empty' };
+  } finally {
+    await closeTrackedTab(tab.id);
+    console.log(`[GG] fechou busca @${username}`);
   }
-  return { status: 'empty', hasActiveStory: false };
+}
+
+/**
+ * OPTION A: detect + ingest via Google search, never opening Instagram. `seeds`
+ * (recent known shortcodes) and the post-page reader stay available for a future
+ * fallback (option C), but are not used in the main flow.
+ */
+async function fetchIgItems(username, _seeds) {
+  return fetchViaGoogle(username);
 }
 
 async function pushItems(apiBaseUrl, apiToken, sourceId, items, hasActiveStory) {
@@ -374,7 +481,7 @@ async function pushItems(apiBaseUrl, apiToken, sourceId, items, hasActiveStory) 
 }
 
 async function fetchDmInbox() {
-  const tab = await openIgTab('https://www.instagram.com/direct/inbox/');
+  const tab = await openTrackedTab('https://www.instagram.com/direct/inbox/');
   try {
     await waitForTabComplete(tab.id);
     const [{ result } = {}] = await chrome.scripting.executeScript({
@@ -386,7 +493,7 @@ async function fetchDmInbox() {
     if (result.error) throw new Error(result.error);
     return result.conversations;
   } finally {
-    await closeIgTab(tab.id);
+    await closeTrackedTab(tab.id);
   }
 }
 
@@ -515,7 +622,7 @@ async function finalizeRun(apiBaseUrl, apiToken, folderId, folderName, agg, stat
   }
   if (!aborted) {
     state.folderLastRun[folderId] = Date.now();
-    if (state.globalCooldownUntil <= Date.now() && Date.now() - state.dmLastRun > DM_MIN_INTERVAL_MS) {
+    if (ENABLE_DM_INBOX && state.globalCooldownUntil <= Date.now() && Date.now() - state.dmLastRun > DM_MIN_INTERVAL_MS) {
       try {
         const conversations = await fetchDmInbox();
         await pushDmInbox(apiBaseUrl, apiToken, conversations);
