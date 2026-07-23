@@ -7,7 +7,7 @@ import type { FolderNode } from '../types';
 // fallback by the extension for a folder that has no saved schedule yet.
 const WINDOW_START_MIN = 8 * 60;
 const WINDOW_END_MIN = 20 * 60;
-const SLOTS_PER_FOLDER = 2;
+const SLOTS_PER_FOLDER = 1; // one run per folder per day (kept in sync with background.js)
 const SCHEDULE_SETTING_KEY = 'instagramFolderSchedule';
 
 type IgFolder = { folderId: string; name: string; count: number };
@@ -21,10 +21,13 @@ const minutesToHHMM = (min: number) => {
 
 function defaultTimesForIndex(i: number, n: number): string[] {
   const span = WINDOW_END_MIN - WINDOW_START_MIN;
-  const half = Math.floor(span / SLOTS_PER_FOLDER);
-  const step = n > 1 ? Math.floor(half / n) : 0;
+  // One slot per folder, spread evenly across the whole window (~span/n apart).
+  const step = n > 1 ? Math.floor(span / n) : 0;
+  const slotGap = Math.floor(span / SLOTS_PER_FOLDER);
   const first = WINDOW_START_MIN + step * i;
-  return [minutesToHHMM(first), minutesToHHMM(first + half)];
+  const times: string[] = [];
+  for (let s = 0; s < SLOTS_PER_FOLDER; s++) times.push(minutesToHHMM(first + slotGap * s));
+  return times;
 }
 
 function flattenIgFolders(nodes: FolderNode[], prefix: string, out: IgFolder[]): IgFolder[] {
@@ -63,7 +66,7 @@ export function InstagramScheduleEditor() {
 
   function setTime(folderId: string, slot: number, value: string) {
     setSchedule((prev) => {
-      const times = [...(prev[folderId] || ['08:00', '20:00'])];
+      const times = [...(prev[folderId] || ['08:00'])];
       times[slot] = value;
       return { ...prev, [folderId]: times };
     });
@@ -99,9 +102,9 @@ export function InstagramScheduleEditor() {
   return (
     <div className="ig-schedule">
       <p style={{ color: 'var(--text-secondary)', fontSize: 12.5, margin: '0 0 10px', lineHeight: 1.5 }}>
-        Cada pasta é atualizada nos 2 horários abaixo. A extensão roda <strong>uma pasta por vez</strong>, então nunca
-        atualiza tudo junto. Ajuste os horários para espalhá-los bem ao longo do dia (o botão abaixo já distribui
-        automaticamente entre 08h e 20h para todas as pastas de uma vez).
+        Cada pasta é atualizada <strong>1x por dia</strong>, no horário abaixo. A extensão roda{' '}
+        <strong>uma pasta por vez</strong>, então nunca atualiza tudo junto. Ajuste os horários para espalhá-los bem ao
+        longo do dia (o botão abaixo já distribui automaticamente entre 08h e 20h para todas as pastas de uma vez).
       </p>
 
       <table className="ig-schedule-table">
@@ -109,8 +112,7 @@ export function InstagramScheduleEditor() {
           <tr>
             <th>Pasta</th>
             <th>Perfis</th>
-            <th>Horário 1</th>
-            <th>Horário 2</th>
+            <th>Horário</th>
           </tr>
         </thead>
         <tbody>
@@ -123,13 +125,6 @@ export function InstagramScheduleEditor() {
                   type="time"
                   value={schedule[f.folderId]?.[0] ?? '08:00'}
                   onChange={(e) => setTime(f.folderId, 0, e.target.value)}
-                />
-              </td>
-              <td>
-                <input
-                  type="time"
-                  value={schedule[f.folderId]?.[1] ?? '20:00'}
-                  onChange={(e) => setTime(f.folderId, 1, e.target.value)}
                 />
               </td>
             </tr>

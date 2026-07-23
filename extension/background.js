@@ -15,9 +15,11 @@ const TICK_PERIOD_MINUTES = 10;
 
 // Daily window the auto-generated schedule spreads slots across (08:00–20:00),
 // in minutes-since-midnight, plus how many slots each folder gets per day.
+// One run per folder per day: halves the total daily profile reads vs. 2x,
+// pulling well clear of Instagram's rate-limit territory.
 const WINDOW_START_MIN = 8 * 60;
 const WINDOW_END_MIN = 20 * 60;
-const SLOTS_PER_FOLDER = 2;
+const SLOTS_PER_FOLDER = 1;
 
 const TAB_LOAD_TIMEOUT_MS = 20000;
 const GRID_POLL_TIMEOUT_MS = 12000;
@@ -406,13 +408,18 @@ async function reportReadLog(apiBaseUrl, apiToken, folder, summary) {
 
 // --- Scheduling ------------------------------------------------------------
 
-/** Two evenly-spread slots for folder #i of n, both inside the daily window. */
+/** Evenly-spread daily slot(s) for folder #i of n, staggered across the window. */
 function defaultTimesForIndex(i, n) {
-  const span = WINDOW_END_MIN - WINDOW_START_MIN; // e.g. 720 min
-  const half = Math.floor(span / SLOTS_PER_FOLDER); // gap between a folder's two slots
-  const step = n > 1 ? Math.floor(half / n) : 0; // stagger first slots across the first half
+  const span = WINDOW_END_MIN - WINDOW_START_MIN; // 720 min (08:00–20:00)
+  // With one slot per folder, spread the n folders evenly across the whole
+  // window so no two run back-to-back (~span/n apart). The per-slot gap only
+  // matters if SLOTS_PER_FOLDER is ever raised above 1 again.
+  const step = n > 1 ? Math.floor(span / n) : 0;
+  const slotGap = Math.floor(span / SLOTS_PER_FOLDER);
   const first = WINDOW_START_MIN + step * i;
-  return [minutesToHHMM(first), minutesToHHMM(first + half)];
+  const times = [];
+  for (let s = 0; s < SLOTS_PER_FOLDER; s++) times.push(minutesToHHMM(first + slotGap * s));
+  return times;
 }
 
 /** Fills in defaults for any folder without an explicit schedule, and drops removed folders. */
@@ -421,7 +428,13 @@ function ensureScheduleDefaults(schedule, folders) {
   const next = {};
   sorted.forEach((f, i) => {
     const existing = schedule?.[f.folderId];
-    next[f.folderId] = existing && existing.length ? existing : defaultTimesForIndex(i, sorted.length);
+    // Cap to SLOTS_PER_FOLDER so a schedule saved under the old 2x/day model
+    // collapses to a single daily run (its earliest time) automatically —
+    // without this, folders configured before this change would keep firing
+    // twice a day even after the switch to 1x.
+    next[f.folderId] = existing && existing.length
+      ? existing.slice(0, SLOTS_PER_FOLDER)
+      : defaultTimesForIndex(i, sorted.length);
   });
   return next;
 }
