@@ -15,20 +15,22 @@ const TICK_PERIOD_MINUTES = 10;
 
 // Daily window the auto-generated schedule spreads slots across (08:00–20:00),
 // in minutes-since-midnight, plus how many slots each folder gets per day.
-// One run per folder per day: halves the total daily profile reads vs. 2x,
-// pulling well clear of Instagram's rate-limit territory.
+// 3x/day: reads come from post pages now (not the blocked profile grid), so we
+// can afford more frequent updates while staying gentle via the long gaps below.
 const WINDOW_START_MIN = 8 * 60;
 const WINDOW_END_MIN = 20 * 60;
-const SLOTS_PER_FOLDER = 1;
+const SLOTS_PER_FOLDER = 3;
 
 const TAB_LOAD_TIMEOUT_MS = 20000;
 const GRID_POLL_TIMEOUT_MS = 12000;
 const RELOAD_RETRY_POLL_TIMEOUT_MS = 15000;
 const INBOX_POLL_TIMEOUT_MS = 8000;
 
-// Long randomized gap between profiles so a folder run is never a burst.
-const MIN_GAP_MS = 20000;
-const MAX_GAP_MS = 45000;
+// Human-like randomized gap between profiles (e.g. 1:33, 2:01) so a folder run
+// never looks like a burst. The keepalive delay() below keeps the MV3 worker
+// alive across these multi-minute waits.
+const MIN_GAP_MS = 60000; // 1:00
+const MAX_GAP_MS = 210000; // 3:30
 
 // Per-source exponential backoff (capped) so a consistently failing profile
 // isn't re-opened every run.
@@ -119,6 +121,98 @@ function waitForTabComplete(tabId) {
  * The blocked/empty distinction is what lets the loop back off from a real
  * rate-limit instead of hammering a genuinely empty profile.
  */
+/**
+ * Runs on a POST page (instagram.com/p/{shortcode}/). Instagram rate-limits the
+ * profile GRID ("Ocorreu um erro") but a single post page still loads and shows
+ * a "Mais posts de {user}" grid of that account's recent posts (newest first),
+ * plus the author's story ring in the header — so we read new posts and detect
+ * stories WITHOUT touching the blocked profile/feed. Returns:
+ *   { items, hasActiveStory } | { unavailable } | { blocked, reason } | { empty } | { error }
+ */
+function scrapePostPageInPage(username, pollTimeoutMs) {
+  return (async () => {
+    const user = String(username || '').toLowerCase();
+    try {
+      function detectUnavailable() {
+        const t = document.body?.innerText || '';
+        return /n[ãa]o est[áa] dispon[íi]vel|isn'?t available|no est[áa] disponible|Página não disponível/i.test(t);
+      }
+      function detectBlockReason() {
+        const path = location.pathname;
+        if (path.includes('/challenge')) return 'challenge';
+        if (path.startsWith('/accounts/login')) return 'login_redirect';
+        const text = document.body?.innerText || '';
+        const markers = ['Ocorreu um erro', 'Algo deu errado', 'Something went wrong', 'Algo salió mal', 'Tentar novamente', 'Try again', 'Reintentar', 'Recarregar a página', 'Reload page'];
+        if (markers.some((m) => text.includes(m))) return 'error_ui';
+        return null;
+      }
+      function collect() {
+        const seen = new Set();
+        const posts = [];
+        document.querySelectorAll('a[href*="/p/"], a[href*="/reel/"]').forEach((a) => {
+          const href = a.getAttribute('href') || '';
+          const m = href.match(/\/(?:([^/]+)\/)?(p|reel)\/([A-Za-z0-9_-]+)/);
+          if (!m) return;
+          const owner = m[1] && m[1] !== 'p' && m[1] !== 'reel' ? m[1].toLowerCase() : null;
+          const img = a.querySelector('img');
+          posts.push({ owner, shortcode: m[3], alt: img?.getAttribute('alt') || '', imageUrl: img?.src || undefined });
+        });
+        // When links encode an owner, keep only this user's (drops any cross-account
+        // "related" posts); otherwise trust the whole "more posts" grid.
+        const scoped = posts.filter((p) => p.owner === user);
+        const pool = scoped.length ? scoped : posts;
+        const out = [];
+        for (const p of pool) {
+          if (seen.has(p.shortcode)) continue;
+          seen.add(p.shortcode);
+          out.push(p);
+        }
+        return out; // DOM order == newest first in the "more posts" grid
+      }
+      // Story ring renders as a <canvas> around the author avatar in the header.
+      function hasActiveStoryRing() {
+        const authorLink = document.querySelector(`a[href="/${user}/"]`);
+        const avatarImg = authorLink?.querySelector('img') || document.querySelector('header img') || document.querySelector('article img');
+        if (!avatarImg) return false;
+        const near = avatarImg.closest('div');
+        return Boolean(near && near.querySelector('canvas'));
+      }
+
+      const deadline = Date.now() + pollTimeoutMs;
+      let posts = collect();
+      while (posts.length === 0 && Date.now() < deadline) {
+        if (detectUnavailable()) return { unavailable: true };
+        await new Promise((r) => setTimeout(r, 500));
+        posts = collect();
+      }
+      const hasActiveStory = hasActiveStoryRing();
+      if (posts.length === 0) {
+        if (detectUnavailable()) return { unavailable: true };
+        const reason = detectBlockReason();
+        if (reason) return { blocked: true, reason, hasActiveStory };
+        return { empty: true, hasActiveStory };
+      }
+      const items = posts.map((p) => {
+        const caption = p.alt || '';
+        const firstLine = caption ? caption.split('\n', 1)[0] : '';
+        return {
+          guid: p.shortcode,
+          link: `https://www.instagram.com/p/${p.shortcode}/`,
+          title: firstLine ? firstLine.slice(0, 120) : '(sem legenda)',
+          summary: caption,
+          imageUrl: p.imageUrl,
+          author: username,
+        };
+      });
+      return { items, hasActiveStory };
+    } catch (err) {
+      return { error: String(err?.message ?? err) };
+    }
+  })();
+}
+
+/** Bootstrap-only fallback: reads the (blocked-prone) profile grid. Used only for
+ *  a source with no known post yet to seed the post-page read. */
 function scrapeProfileGridInPage(username, pollTimeoutMs) {
   return (async () => {
     try {
@@ -286,6 +380,65 @@ async function fetchIgFolders(apiBaseUrl, apiToken) {
   return out;
 }
 
+/** Map of sourceId -> up to 3 recent known post shortcodes (the "seeds" we open). */
+async function fetchSeeds(apiBaseUrl, apiToken) {
+  try {
+    const res = await fetch(`${apiBaseUrl}/api/extension/instagram/seeds`, { headers: { 'X-Extension-Token': apiToken } });
+    if (!res.ok) return {};
+    const { seeds } = await res.json();
+    const map = {};
+    for (const s of seeds || []) map[s.sourceId] = s.shortcodes || [];
+    return map;
+  } catch {
+    return {};
+  }
+}
+
+async function runPostScrape(tabId, username, pollMs) {
+  const [{ result } = {}] = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: scrapePostPageInPage,
+    args: [username, pollMs],
+  });
+  return result || { error: 'no result from page script' };
+}
+
+/** Opens one known post page and reads its "more posts" grid. Reloads once ONLY
+ *  on `empty` (slow grid) — never on a detected block or unavailable post. */
+async function fetchViaPostPage(username, shortcode) {
+  const tab = await chrome.tabs.create({ url: `https://www.instagram.com/p/${shortcode}/`, active: false });
+  try {
+    await waitForTabComplete(tab.id);
+    let result = await runPostScrape(tab.id, username, GRID_POLL_TIMEOUT_MS);
+    if (!result.items && result.empty && !result.blocked && !result.unavailable) {
+      await delay(1500 + Math.random() * 1500);
+      await chrome.tabs.reload(tab.id);
+      await waitForTabComplete(tab.id);
+      result = await runPostScrape(tab.id, username, RELOAD_RETRY_POLL_TIMEOUT_MS);
+    }
+    if (result.items) return { status: 'ok', items: result.items, hasActiveStory: result.hasActiveStory };
+    if (result.unavailable) return { status: 'unavailable' };
+    if (result.blocked) return { status: 'blocked', reason: result.reason, hasActiveStory: result.hasActiveStory };
+    if (result.empty) return { status: 'empty', hasActiveStory: result.hasActiveStory };
+    return { status: 'blocked', reason: result.error || 'unknown' };
+  } finally {
+    await chrome.tabs.remove(tab.id).catch(() => {});
+  }
+}
+
+/** Reads a source via its recent post pages in order; only falls back to the
+ *  (blocked-prone) profile grid when there is no seed at all to open. */
+async function fetchIgItems(username, seeds) {
+  const codes = seeds || [];
+  for (const shortcode of codes) {
+    const res = await fetchViaPostPage(username, shortcode);
+    if (res.status === 'ok' || res.status === 'blocked') return res;
+    // 'unavailable' or 'empty' -> try the next seed
+  }
+  if (codes.length === 0) return fetchInstagramProfileItems(username);
+  return { status: 'empty', hasActiveStory: false };
+}
+
 async function runProfileScrape(tabId, username, pollMs) {
   const [{ result } = {}] = await chrome.scripting.executeScript({
     target: { tabId },
@@ -408,17 +561,16 @@ async function reportReadLog(apiBaseUrl, apiToken, folder, summary) {
 
 // --- Scheduling ------------------------------------------------------------
 
-/** Evenly-spread daily slot(s) for folder #i of n, staggered across the window. */
+/** Evenly-spread daily slots for folder #i of n, all kept inside the window. */
 function defaultTimesForIndex(i, n) {
   const span = WINDOW_END_MIN - WINDOW_START_MIN; // 720 min (08:00–20:00)
-  // With one slot per folder, spread the n folders evenly across the whole
-  // window so no two run back-to-back (~span/n apart). The per-slot gap only
-  // matters if SLOTS_PER_FOLDER is ever raised above 1 again.
-  const step = n > 1 ? Math.floor(span / n) : 0;
-  const slotGap = Math.floor(span / SLOTS_PER_FOLDER);
+  const gap = Math.floor(span / SLOTS_PER_FOLDER); // spacing between a folder's own slots
+  // Stagger folders' FIRST slots across the first gap-window so the last slot
+  // (first + gap*(SLOTS-1)) still lands by WINDOW_END for every folder.
+  const step = n > 1 ? Math.floor(gap / n) : 0;
   const first = WINDOW_START_MIN + step * i;
   const times = [];
-  for (let s = 0; s < SLOTS_PER_FOLDER; s++) times.push(minutesToHHMM(first + slotGap * s));
+  for (let s = 0; s < SLOTS_PER_FOLDER; s++) times.push(minutesToHHMM(first + gap * s));
   return times;
 }
 
@@ -503,10 +655,14 @@ async function syncSourceList(apiBaseUrl, apiToken, list, state) {
 
   const eligible = list.filter((s) => !(state.sourceBackoff[s.sourceId] && state.sourceBackoff[s.sourceId].nextRetryAt > now));
 
+  // Recent post shortcodes per source: we open a known post page and read its
+  // "more posts" grid instead of the rate-limited profile grid.
+  const seedsMap = await fetchSeeds(apiBaseUrl, apiToken);
+
   for (const { sourceId, username } of eligible) {
     let outcome;
     try {
-      outcome = await fetchInstagramProfileItems(username);
+      outcome = await fetchIgItems(username, seedsMap[sourceId]);
     } catch (err) {
       outcome = { status: 'blocked', reason: String(err?.message ?? err) };
     }

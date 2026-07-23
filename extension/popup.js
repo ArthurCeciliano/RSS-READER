@@ -93,7 +93,7 @@ async function load() {
     return;
   }
 
-  msgEl.textContent = `${plan.folders.length} pasta(s) · atualização 1x/dia por pasta`;
+  msgEl.textContent = `${plan.folders.length} pasta(s) · atualização 3x/dia por pasta`;
   foldersEl.innerHTML = '';
   for (const f of plan.folders) foldersEl.appendChild(renderFolder(f));
 }

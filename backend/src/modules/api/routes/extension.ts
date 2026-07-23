@@ -52,6 +52,31 @@ export async function extensionRoutes(app: FastifyInstance) {
     };
   });
 
+  // Per-source "seeds": the shortcodes of the most recent posts we already have.
+  // The extension opens one of these post pages (which still loads when the
+  // profile grid is blocked) and reads its "more posts" grid to find new posts.
+  app.get('/api/extension/instagram/seeds', async () => {
+    const sources = await prisma.source.findMany({
+      where: { type: 'instagram' },
+      select: { id: true, identityUrl: true },
+    });
+    const seeds = await Promise.all(
+      sources.map(async (s) => {
+        const items = await prisma.item.findMany({
+          where: { sourceId: s.id },
+          orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
+          take: 3,
+          select: { guid: true, link: true },
+        });
+        const shortcodes = items
+          .map((i) => i.guid || (i.link ?? '').match(/\/(?:p|reel)\/([A-Za-z0-9_-]+)/)?.[1] || null)
+          .filter((c): c is string => Boolean(c));
+        return { sourceId: s.id, username: extractInstagramUsername(s.identityUrl), shortcodes };
+      }),
+    );
+    return { seeds };
+  });
+
   app.post<{ Params: { sourceId: string }; Body: { items?: ExtensionPushItem[]; hasActiveStory?: boolean } }>(
     '/api/extension/instagram/:sourceId/items',
     async (req, reply) => {
