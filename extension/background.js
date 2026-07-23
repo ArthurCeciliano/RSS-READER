@@ -34,10 +34,12 @@ const BLOCKED_BACKOFF_BASE_MS = 30 * 60 * 1000;
 const EMPTY_BACKOFF_BASE_MS = 10 * 60 * 1000;
 const BACKOFF_MAX_MS = 12 * 60 * 60 * 1000;
 
-// Several blocks inside one folder run = the whole session is throttled, not
-// those profiles. Stop and cool the entire extension down.
-const BLOCK_THRESHOLD = 2;
-const GLOBAL_COOLDOWN_MS = 2 * 60 * 60 * 1000;
+// A single block inside a folder run = Instagram is already signaling to back
+// off. Stop the whole session immediately and cool the entire extension down,
+// rather than testing its patience with a second profile. (Was 2; lowered to
+// 1 after a soft rate-limit — erring hard on the side of the account's safety.)
+const BLOCK_THRESHOLD = 1;
+const GLOBAL_COOLDOWN_MS = 3 * 60 * 60 * 1000;
 
 // DMs piggyback on a completed folder run, but no more than once every few hours.
 const DM_MIN_INTERVAL_MS = 4 * 60 * 60 * 1000;
@@ -291,14 +293,20 @@ async function runProfileScrape(tabId, username, pollMs) {
   return result || { error: 'no result from page script' };
 }
 
-/** Opens the profile, scrapes it, reloads+retries once on a transient error. */
+/** Opens the profile and scrapes it. Reloads once ONLY on an `empty` result. */
 async function fetchInstagramProfileItems(username) {
   const tab = await chrome.tabs.create({ url: `https://www.instagram.com/${encodeURIComponent(username)}/`, active: false });
   try {
     await waitForTabComplete(tab.id);
     let result = await runProfileScrape(tab.id, username, GRID_POLL_TIMEOUT_MS);
 
-    if (!result.items && (result.blocked || result.empty)) {
+    // Retry by reloading ONLY when the page loaded fine but rendered no posts
+    // (`empty`) — a reload can catch a slow grid. NEVER reload on a detected
+    // `blocked` (e.g. "Ocorreu um erro", challenge, login wall): hitting a
+    // profile a second time 1.5s after Instagram just errored on it is adding
+    // load exactly when it's telling us to stop, and is a fast way to escalate
+    // a soft rate-limit into a real one. On a block we bail immediately.
+    if (!result.items && result.empty && !result.blocked) {
       await delay(1500 + Math.random() * 1500);
       await chrome.tabs.reload(tab.id);
       await waitForTabComplete(tab.id);
