@@ -269,9 +269,19 @@ function scrapePostPageInPage(username, pollTimeoutMs) {
 
 // --- Config / progress ------------------------------------------------------
 
+// Built-in connection so the extension works WITHOUT configuring anything in the
+// Options page. Whatever is saved in storage (via Options) still takes priority.
+// The token is intentionally EMPTY here (this file is in a public repo) and is
+// filled in locally on the machine that runs the extension.
+const DEFAULT_API_BASE_URL = 'http://179.197.226.119:3001';
+const DEFAULT_API_TOKEN = '';
+
 async function getConfig() {
   const { apiBaseUrl, apiToken } = await chrome.storage.local.get(['apiBaseUrl', 'apiToken']);
-  return { apiBaseUrl: apiBaseUrl || '', apiToken: apiToken || '' };
+  return {
+    apiBaseUrl: apiBaseUrl || DEFAULT_API_BASE_URL,
+    apiToken: apiToken || DEFAULT_API_TOKEN,
+  };
 }
 
 // Lightweight progress for a folder run so the app can show "i/total".
