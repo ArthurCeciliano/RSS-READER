@@ -30,6 +30,11 @@ const RELOAD_RETRY_POLL_TIMEOUT_MS = 15000;
 const MIN_GAP_MS = 2000;
 const MAX_GAP_MS = 5000;
 
+// How many saved posts we'll open before giving up on a source. A healthy source
+// resolves on the 1st try (remembered good seed); the budget only gets spent by a
+// source whose newest saved posts are collab/foreign ones we must skip past.
+const MAX_SEED_ATTEMPTS = 8;
+
 function randInt(min, max) {
   return Math.floor(min + Math.random() * (max - min));
 }
@@ -318,6 +323,27 @@ async function getConfig() {
   };
 }
 
+// Remembered "good seed" per source: a post that PROVED it shows this account's
+// own grid. The "Mais posts" grid of an OLD post still lists the account's RECENT
+// posts, so a seed that worked once keeps working — which means we stop paying
+// the cost (and the drift risk) of guessing with collab posts every sync.
+async function getGoodSeeds() {
+  const { goodSeeds } = await chrome.storage.local.get('goodSeeds');
+  return goodSeeds || {};
+}
+async function setGoodSeed(sourceId, shortcode) {
+  const goodSeeds = await getGoodSeeds();
+  if (goodSeeds[sourceId] === shortcode) return;
+  goodSeeds[sourceId] = shortcode;
+  await chrome.storage.local.set({ goodSeeds });
+}
+async function clearGoodSeed(sourceId) {
+  const goodSeeds = await getGoodSeeds();
+  if (!(sourceId in goodSeeds)) return;
+  delete goodSeeds[sourceId];
+  await chrome.storage.local.set({ goodSeeds });
+}
+
 // Lightweight progress for a folder run so the app can show "i/total".
 async function setProgress(progress) {
   await chrome.storage.local.set({ igProgress: progress });
@@ -442,18 +468,30 @@ async function fetchViaPostPage(username, shortcode) {
  * A profile with NO seed yet (brand-new, never read) is bootstrapped ONCE from
  * its profile feed; from then on it has posts, so the next read uses a post page.
  */
-async function fetchIgItems(username, seeds) {
-  const codes = seeds || [];
+async function fetchIgItems(sourceId, username, seeds) {
+  const good = (await getGoodSeeds())[sourceId];
+  const stored = seeds || [];
+  // Remembered good seed first, then the newest saved posts.
+  const codes = good ? [good, ...stored.filter((c) => c !== good)] : [...stored];
+  if (codes.length === 0) return fetchInstagramProfileItems(username); // bootstrap
+
   let wrongOwner = null;
+  let attempts = 0;
   for (const shortcode of codes) {
+    if (attempts >= MAX_SEED_ATTEMPTS) break;
+    attempts += 1;
     const res = await fetchViaPostPage(username, shortcode);
-    if (res.status === 'ok' || res.status === 'blocked') return res;
+    if (res.status === 'ok') {
+      await setGoodSeed(sourceId, shortcode); // proven to show OUR grid — reuse it
+      return res;
+    }
+    if (res.status === 'blocked') return res;
     // A seed that is a collab post shows the CO-AUTHOR's grid. Never ingest it —
     // walk on to an older seed until we find one that is provably this account's.
     if (res.status === 'wrong_owner') wrongOwner = res.gridOwner;
+    if (good && shortcode === good) await clearGoodSeed(sourceId); // stale, drop it
     // 'unavailable' | 'empty' | 'unverified' | 'wrong_owner' -> try the next seed
   }
-  if (codes.length === 0) return fetchInstagramProfileItems(username); // bootstrap
   if (wrongOwner) return { status: 'wrong_owner', gridOwner: wrongOwner, hasActiveStory: false };
   return { status: 'empty', hasActiveStory: false };
 }
@@ -490,7 +528,7 @@ function newAgg() {
 async function processProfile(apiBaseUrl, apiToken, item, agg) {
   let outcome;
   try {
-    outcome = await fetchIgItems(item.username, item.seeds);
+    outcome = await fetchIgItems(item.sourceId, item.username, item.seeds);
   } catch (err) {
     outcome = { status: 'blocked', reason: String(err?.message ?? err) };
   }

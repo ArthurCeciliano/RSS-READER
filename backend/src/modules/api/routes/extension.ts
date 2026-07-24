@@ -55,6 +55,10 @@ export async function extensionRoutes(app: FastifyInstance) {
   // Per-source "seeds": the shortcodes of the most recent posts we already have.
   // The extension opens one of these post pages (which still loads when the
   // profile grid is blocked) and reads its "more posts" grid to find new posts.
+  // We return a deep-ish list (not just the newest few) so a source whose latest
+  // saved posts are collab/foreign ones can be walked back until a post that
+  // provably shows THIS account's grid is found — that is what lets a feed that
+  // drifted to a co-author's account heal itself instead of staying stuck.
   app.get('/api/extension/instagram/seeds', async () => {
     const sources = await prisma.source.findMany({
       where: { type: 'instagram' },
@@ -65,7 +69,7 @@ export async function extensionRoutes(app: FastifyInstance) {
         const items = await prisma.item.findMany({
           where: { sourceId: s.id },
           orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
-          take: 3,
+          take: 15,
           select: { guid: true, link: true },
         });
         const shortcodes = items
