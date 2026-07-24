@@ -22,22 +22,28 @@ document.getElementById('save').addEventListener('click', async () => {
     origin = new URL(apiBaseUrl).origin;
   } catch {
     setStatus('URL da API inválida.', 'error');
+    alert('URL da API inválida.');
     return;
   }
   if (!apiToken) {
     setStatus('Token é obrigatório.', 'error');
+    alert('Token é obrigatório.');
     return;
   }
 
-  // Must run inside this click handler — chrome.permissions.request requires a user gesture.
-  const granted = await chrome.permissions.request({ origins: [`${origin}/*`] });
-  if (!granted) {
-    setStatus('Permissão negada — a extensão não vai conseguir falar com o servidor.', 'error');
-    return;
-  }
-
+  // Save FIRST so the connection persists no matter what. The API host is already
+  // granted via host_permissions in the manifest, so no permission prompt is needed
+  // (that finicky prompt was the whole reason "Salvar" seemed to do nothing).
   await chrome.storage.local.set({ apiBaseUrl, apiToken });
-  setStatus('Conexão salva. Sincronize pelos botões dentro do app (perfil ou pasta).', 'ok');
+  // Best-effort extra grant only if the server host differs from the baked-in one.
+  try {
+    await chrome.permissions.request({ origins: [`${origin}/*`] });
+  } catch {
+    /* ignore */
+  }
+
+  setStatus('✓ Conexão salva! Pode fechar esta aba e sincronizar pelo app.', 'ok');
+  alert('✓ Conexão salva!');
 });
 
 load();

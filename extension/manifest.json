@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "description": "Fetches Instagram posts for profiles imported into your self-hosted RSS Reader, using your own logged-in browser session, and pushes them to your server.",
   "permissions": ["storage", "scripting", "tabs"],
-  "host_permissions": ["https://www.instagram.com/*"],
+  "host_permissions": ["https://www.instagram.com/*", "http://179.197.226.119:3001/*"],
   "optional_host_permissions": ["http://*/*", "https://*/*"],
   "background": {
     "service_worker": "background.js",
