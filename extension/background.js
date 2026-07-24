@@ -207,14 +207,52 @@ function scrapePostPageInPage(username, pollTimeoutMs) {
       // items — since seeds come from the newest stored post, the next sync would
       // open the other account's post and drag the whole feed over to them.
       const GRID_LABEL_RE =
-        /(?:mais publica(?:ç|c)(?:ões|oes) de|mais posts de|more posts from|m(?:á|a)s publicaciones de)\s*@?([a-z0-9_.]+)/i;
+        /(?:mais publica(?:ç|c)(?:ões|oes) de|mais posts de|more posts from|m(?:á|a)s publicaciones de)/i;
+
+      /** "/disturbia/" -> "disturbia". Only a bare profile path; "/p/ABC/" won't match. */
+      function profileHrefUser(a) {
+        const m = (a.getAttribute('href') || '').match(/^\/([A-Za-z0-9_.]+)\/?$/);
+        return m ? m[1].toLowerCase() : null;
+      }
 
       function findGridLabel() {
-        for (const el of document.querySelectorAll('span, h1, h2, h3, div, a')) {
+        const matches = [];
+        for (const el of document.querySelectorAll('span, h1, h2, h3, div, a, section, header')) {
           const txt = (el.textContent || '').trim();
-          if (!txt || txt.length > 80) continue; // skip big containers, match the label itself
-          const m = txt.match(GRID_LABEL_RE);
-          if (m) return { el, owner: m[1].toLowerCase() };
+          if (!txt || txt.length > 200) continue;
+          if (GRID_LABEL_RE.test(txt)) matches.push(el);
+        }
+        if (!matches.length) return null;
+        // Use the INNERMOST match — the label itself. Taking an outer wrapper made
+        // us read its whole subtree, gluing the grid's icon labels onto the name
+        // ("disturbia" + "clipe"/"carrossel" -> "disturbiaclipecarrosselclipe"),
+        // which then failed the owner check against the real account.
+        const el = matches.find((m) => !matches.some((o) => o !== m && m.contains(o))) || matches[matches.length - 1];
+
+        // Read the account from the profile LINK's href. The href is exact — it
+        // cannot pick up neighbouring text the way textContent does. Walk up a few
+        // levels because the name usually sits in a sibling <a> of the label text.
+        let node = el;
+        for (let i = 0; i < 4 && node; i++) {
+          if (node.matches && node.matches('a')) {
+            const self = profileHrefUser(node);
+            if (self) return { el, owner: self };
+          }
+          if (node.querySelectorAll) {
+            for (const a of node.querySelectorAll('a')) {
+              const u = profileHrefUser(a);
+              if (u) return { el, owner: u };
+            }
+          }
+          node = node.parentElement;
+        }
+
+        // Fallback: parse the label's own (clean) text, then prove the account
+        // really exists on the page before trusting it.
+        const m = (el.textContent || '').trim().match(new RegExp(GRID_LABEL_RE.source + '\\s*@?([a-z0-9_.]+)', 'i'));
+        if (m) {
+          const owner = m[1].toLowerCase();
+          if (document.querySelector(`a[href="/${owner}/"]`)) return { el, owner };
         }
         return null;
       }
