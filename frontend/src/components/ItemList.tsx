@@ -8,6 +8,7 @@ interface ItemListProps {
   viewMode: ViewMode;
   onOpenItem: (item: FeedItem) => void;
   onToggleStar: (item: FeedItem) => void;
+  onDeleteItem: (item: FeedItem) => void;
   onLoadMore: () => void;
   hasMore: boolean;
   selectedItemId?: string;
@@ -69,6 +70,7 @@ export function ItemList({
   viewMode,
   onOpenItem,
   onToggleStar,
+  onDeleteItem,
   onLoadMore,
   hasMore,
   selectedItemId,
@@ -118,6 +120,16 @@ export function ItemList({
                 title="Estrela"
               >
                 ★
+              </button>
+              <button
+                className="delete-item-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteItem(item);
+                }}
+                title="Apagar este post"
+              >
+                🗑
               </button>
             </div>
           </article>
@@ -171,6 +183,16 @@ export function ItemList({
               ↗
             </a>
           )}
+          <button
+            className="delete-item-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDeleteItem(item);
+            }}
+            title="Apagar este post"
+          >
+            🗑
+          </button>
         </div>
       ))}
       {hasMore && (

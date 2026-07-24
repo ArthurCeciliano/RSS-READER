@@ -91,6 +91,31 @@ export async function itemsRoutes(app: FastifyInstance) {
     },
   );
 
+  // Removes an item for good. Used to clean up posts that were ingested by
+  // mistake (e.g. a co-author's posts that leaked in through a collab post
+  // before the owner check existed). Note: deleting an item that is still on the
+  // account's grid just means the next sync re-ingests it — this is for content
+  // that no longer belongs to the source, not for hiding posts.
+  app.delete<{ Params: { id: string } }>('/api/items/:id', async (req, reply) => {
+    try {
+      await prisma.item.delete({ where: { id: req.params.id } });
+    } catch {
+      return reply.code(404).send({ error: 'item not found' });
+    }
+    return { deleted: true };
+  });
+
+  // Bulk cleanup for a source that got contaminated: deletes many items at once
+  // so the user doesn't have to click through dozens of wrong posts.
+  app.post<{ Body: { ids?: string[] } }>('/api/items/bulk-delete', async (req, reply) => {
+    const ids = req.body?.ids;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return reply.code(400).send({ error: 'ids must be a non-empty array' });
+    }
+    const result = await prisma.item.deleteMany({ where: { id: { in: ids } } });
+    return { deleted: result.count };
+  });
+
   app.post<{ Body: { folderId?: string; sourceId?: string } }>('/api/items/mark-all-read', async (req) => {
     const where: Prisma.ItemWhereInput = {};
     if (req.body.sourceId) where.sourceId = req.body.sourceId;

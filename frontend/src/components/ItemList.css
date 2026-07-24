@@ -92,7 +92,8 @@
 }
 
 .star-btn,
-.external-link-btn {
+.external-link-btn,
+.delete-item-btn {
   background: rgba(0, 0, 0, 0.4);
   border: none;
   color: var(--text-tertiary);
@@ -108,6 +109,25 @@
 
 .external-link-btn:hover {
   color: var(--text-primary);
+}
+
+/* Destructive, so it stays quiet until the user is actually going for it. */
+.delete-item-btn {
+  cursor: pointer;
+  font-size: 12px;
+  opacity: 0.45;
+  transition:
+    opacity 0.12s,
+    color 0.12s;
+}
+
+.item-card:hover .delete-item-btn,
+.item-row:hover .delete-item-btn {
+  opacity: 1;
+}
+
+.delete-item-btn:hover {
+  color: var(--danger);
 }
 
 .play-overlay {

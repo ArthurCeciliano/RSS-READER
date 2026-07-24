@@ -89,6 +89,11 @@ export const api = {
   updateItem: (id: string, patch: { isRead?: boolean; isStarred?: boolean }) =>
     request(`/api/items/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
 
+  deleteItem: (id: string) => request(`/api/items/${id}`, { method: 'DELETE' }),
+
+  bulkDeleteItems: (ids: string[]) =>
+    request<{ deleted: number }>('/api/items/bulk-delete', { method: 'POST', body: JSON.stringify({ ids }) }),
+
   markAllRead: (scope: { folderId?: string; sourceId?: string }) =>
     request('/api/items/mark-all-read', { method: 'POST', body: JSON.stringify(scope) }),
 

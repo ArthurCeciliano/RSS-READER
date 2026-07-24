@@ -176,6 +176,19 @@ export default function App() {
     api.updateItem(item.id, { isRead }).then(loadFolders).catch(() => {});
   }
 
+  async function deleteItem(item: FeedItem) {
+    if (!window.confirm(`Apagar "${item.title}"?\n\nEle sai do seu feed definitivamente.`)) return;
+    // Drop it from the list right away; the badge is reconciled by loadFolders().
+    setItems((prev) => prev.filter((i) => i.id !== item.id));
+    if (selectedItem?.id === item.id) setSelectedItem(null);
+    try {
+      await api.deleteItem(item.id);
+      loadFolders();
+    } catch {
+      loadItems(); // put it back if the server refused
+    }
+  }
+
   function openItem(item: FeedItem) {
     setSelectedItem(item);
     setSelectedIndex(items.findIndex((i) => i.id === item.id));
@@ -371,6 +384,7 @@ export default function App() {
                 viewMode={viewMode}
                 onOpenItem={openItem}
                 onToggleStar={toggleStar}
+                onDeleteItem={deleteItem}
                 onLoadMore={() => nextCursor && loadItems(nextCursor)}
                 hasMore={Boolean(nextCursor)}
                 selectedItemId={selectedItem?.id}
