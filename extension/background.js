@@ -218,13 +218,20 @@ function scrapePostPageInPage(username, pollTimeoutMs) {
         }
         return out; // DOM order == newest first in the "more posts" grid
       }
-      // Story ring renders as a <canvas> around the author avatar in the header.
+      // An active story renders a gradient ring as a <canvas> wrapping the author
+      // avatar in the post header. Find the avatar, then walk a few ancestors up
+      // looking for that canvas — robust to how deeply Instagram nests the ring
+      // around the <img> (older code only checked the single nearest <div>).
       function hasActiveStoryRing() {
         const authorLink = document.querySelector(`a[href="/${user}/"]`);
         const avatarImg = authorLink?.querySelector('img') || document.querySelector('header img') || document.querySelector('article img');
         if (!avatarImg) return false;
-        const near = avatarImg.closest('div');
-        return Boolean(near && near.querySelector('canvas'));
+        let node = avatarImg;
+        for (let i = 0; i < 3 && node; i++) {
+          node = node.parentElement;
+          if (node && typeof node.querySelector === 'function' && node.querySelector('canvas')) return true;
+        }
+        return false;
       }
 
       const deadline = Date.now() + pollTimeoutMs;
