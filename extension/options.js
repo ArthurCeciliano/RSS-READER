@@ -37,8 +37,7 @@ document.getElementById('save').addEventListener('click', async () => {
   }
 
   await chrome.storage.local.set({ apiBaseUrl, apiToken });
-  await chrome.runtime.sendMessage({ type: 'reschedule' });
-  setStatus('Conexão salva. Configure os horários no app web (Configurações → Agendamento por pasta).', 'ok');
+  setStatus('Conexão salva. Sincronize pelos botões dentro do app (perfil ou pasta).', 'ok');
 });
 
 load();

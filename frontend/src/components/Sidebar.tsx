@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { FolderNode, SelectedScope } from '../types';
+import type { FolderNode, SelectedScope, SourceSummary } from '../types';
 import { api, ApiError } from '../api/client';
 import { deleteSourceConfirm, renameSourcePrompt } from '../sourceActions';
 import { flattenFolderNodes } from '../folderTree';
@@ -21,6 +21,17 @@ interface SidebarProps {
   onOpenMessages: () => void;
   pendingDmCount: number;
   onFoldersChanged: () => void;
+  onSyncInstagramSource: (source: SourceSummary) => void;
+  onSyncInstagramFolder: (folder: FolderNode) => void;
+  syncingIds: Set<string>;
+  folderSyncProgress: { folderId: string; index: number; total: number } | null;
+}
+
+/** A folder gets a manual IG sync button only when it holds Instagram profiles
+ *  DIRECTLY and has no subfolders — syncing a whole tree at once is exactly the
+ *  volume that gets the account rate-limited, so parent folders don't get one. */
+function isInstagramLeafFolder(folder: FolderNode): boolean {
+  return folder.children.length === 0 && folder.sources.some((s) => s.type === 'instagram');
 }
 
 interface MenuState {
@@ -59,6 +70,10 @@ interface FolderItemProps {
   onReorderFolders: (draggedId: string, targetId: string) => void;
   onMoveSource: (sourceId: string, folderId: string | null) => void;
   onReorderSource: (draggedSourceId: string, targetFolder: FolderNode, targetSourceId: string) => void;
+  onSyncInstagramSource: (source: SourceSummary) => void;
+  onSyncInstagramFolder: (folder: FolderNode) => void;
+  syncingIds: Set<string>;
+  folderSyncProgress: { folderId: string; index: number; total: number } | null;
 }
 
 /** Renders itself for `folder.children` so a folder can nest other folders,
@@ -80,9 +95,16 @@ function FolderItem({
   onReorderFolders,
   onMoveSource,
   onReorderSource,
+  onSyncInstagramSource,
+  onSyncInstagramFolder,
+  syncingIds,
+  folderSyncProgress,
 }: FolderItemProps) {
   const isCollapsed = !expanded.has(folder.id);
   const isDragOver = dragOverFolder === folder.id;
+  const showFolderSync = isInstagramLeafFolder(folder);
+  const folderSyncing = syncingIds.has(folder.id);
+  const folderProgress = folderSyncProgress?.folderId === folder.id ? folderSyncProgress : null;
 
   return (
     <div className="folder-block">
@@ -120,6 +142,20 @@ function FolderItem({
           {folder.name}
         </span>
         {folder.unreadCount > 0 && <span className="badge">{folder.unreadCount}</span>}
+        {showFolderSync && (
+          <span
+            className={`row-sync-btn ${folderSyncing ? (folderProgress ? 'active' : 'spinning') : ''}`}
+            role="button"
+            tabIndex={0}
+            title={folderSyncing ? 'Sincronizando os perfis desta pasta…' : 'Sincronizar todos os perfis de Instagram desta pasta'}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!folderSyncing) onSyncInstagramFolder(folder);
+            }}
+          >
+            {folderProgress ? `${folderProgress.index + 1}/${folderProgress.total}` : '⟳'}
+          </span>
+        )}
       </button>
       {!isCollapsed && (
         <>
@@ -142,6 +178,10 @@ function FolderItem({
                   onReorderFolders={onReorderFolders}
                   onMoveSource={onMoveSource}
                   onReorderSource={onReorderSource}
+                  onSyncInstagramSource={onSyncInstagramSource}
+                  onSyncInstagramFolder={onSyncInstagramFolder}
+                  syncingIds={syncingIds}
+                  folderSyncProgress={folderSyncProgress}
                 />
               ))}
             </div>
@@ -175,6 +215,20 @@ function FolderItem({
                 <span className="source-title">{source.title}</span>
                 {source.status !== 'ok' && <span className={`status-dot ${source.status}`} title={source.status} />}
                 {source.unreadCount > 0 && <span className="badge">{source.unreadCount}</span>}
+                {source.type === 'instagram' && (
+                  <span
+                    className={`row-sync-btn ${syncingIds.has(source.id) ? 'spinning' : ''}`}
+                    role="button"
+                    tabIndex={0}
+                    title={syncingIds.has(source.id) ? 'Sincronizando…' : 'Sincronizar este perfil do Instagram'}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!syncingIds.has(source.id)) onSyncInstagramSource(source);
+                    }}
+                  >
+                    ⟳
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -197,6 +251,10 @@ export function Sidebar({
   onOpenMessages,
   pendingDmCount,
   onFoldersChanged,
+  onSyncInstagramSource,
+  onSyncInstagramFolder,
+  syncingIds,
+  folderSyncProgress,
 }: SidebarProps) {
   // Tracks which folders were explicitly opened, rather than which are
   // collapsed, so an empty set (the initial state, and the state for any
@@ -390,7 +448,13 @@ export function Sidebar({
       actions: [
         { label: 'Renomear', onSelect: () => handleRenameSource(source) },
         { label: 'Mover para pasta...', onSelect: () => setMoveDialogSource({ id: source.id, title: source.title }) },
-        { label: 'Atualizar agora', onSelect: () => api.refreshSource(source.id).catch((err) => reportError(err, 'Falha ao atualizar.')) },
+        {
+          label: source.type === 'instagram' ? 'Sincronizar Instagram' : 'Atualizar agora',
+          onSelect: () =>
+            source.type === 'instagram'
+              ? onSyncInstagramSource(source)
+              : api.refreshSource(source.id).catch((err) => reportError(err, 'Falha ao atualizar.')),
+        },
         { label: 'Excluir', onSelect: () => handleDeleteSource(source), danger: true },
       ],
     });
@@ -462,6 +526,10 @@ export function Sidebar({
             onReorderFolders={handleReorderFolders}
             onMoveSource={handleMoveSource}
             onReorderSource={handleReorderSource}
+            onSyncInstagramSource={onSyncInstagramSource}
+            onSyncInstagramFolder={onSyncInstagramFolder}
+            syncingIds={syncingIds}
+            folderSyncProgress={folderSyncProgress}
           />
         ))}
       </div>

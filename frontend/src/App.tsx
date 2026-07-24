@@ -14,7 +14,7 @@ import { TagsPage } from './components/TagsPage';
 import { MessagesPage } from './components/MessagesPage';
 import { api } from './api/client';
 import { playBeep, requestNotificationPermission, showDesktopNotification } from './notifications';
-import type { FeedItem, FolderNode, ItemFilter, SelectedScope, SortOrder, Tag, ViewMode } from './types';
+import type { FeedItem, FolderNode, ItemFilter, SelectedScope, SortOrder, SourceSummary, Tag, ViewMode } from './types';
 
 const NOTIFICATION_POLL_MS = 20_000;
 
@@ -45,7 +45,9 @@ export default function App() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [instagramExtensionId, setInstagramExtensionId] = useState<string | null>(null);
-  const [syncingInstagram, setSyncingInstagram] = useState(false);
+  // Which source/folder ids are mid-sync (drives the per-row spinner in the sidebar).
+  const [syncingIds, setSyncingIds] = useState<Set<string>>(new Set());
+  const [folderSyncProgress, setFolderSyncProgress] = useState<{ folderId: string; index: number; total: number } | null>(null);
   const [markArticleAsReadSetting, setMarkArticleAsReadSetting] = useState<'on_display' | 'on_click' | 'manual'>('on_display');
   const [pendingDmCount, setPendingDmCount] = useState(0);
   const [notifiedDmIds] = useState<Set<string>>(() => new Set());
@@ -218,26 +220,81 @@ export default function App() {
     api.updateSource(sourceId, { storyAcknowledged: true }).catch(() => {});
   }
 
-  function handleSyncInstagram() {
-    const chromeApi = (window as unknown as { chrome?: ChromeRuntime }).chrome;
-    if (!chromeApi?.runtime?.sendMessage) {
-      alert('Extensão não detectada neste navegador (precisa do Chrome com a extensão instalada).');
-      return;
-    }
-    if (!instagramExtensionId) {
-      alert('Configure o "ID da extensão" em Configurações → Extensão do navegador primeiro.');
-      return;
-    }
-    setSyncingInstagram(true);
-    chromeApi.runtime.sendMessage(instagramExtensionId, { type: 'sync-now' }, () => {
-      setSyncingInstagram(false);
-      if (chromeApi.runtime.lastError) {
-        alert(`Não consegui falar com a extensão: ${chromeApi.runtime.lastError.message}`);
+  // Promise wrapper over the extension's callback-style messaging (see
+  // extension/manifest.json externally_connectable). Rejects with a friendly
+  // message when the extension isn't installed / its ID isn't configured yet.
+  function sendToExtension(message: unknown): Promise<Record<string, unknown>> {
+    return new Promise((resolve, reject) => {
+      const chromeApi = (window as unknown as { chrome?: ChromeRuntime }).chrome;
+      if (!chromeApi?.runtime?.sendMessage) {
+        reject(new Error('Extensão não detectada neste navegador (precisa do Chrome com a extensão instalada).'));
         return;
       }
+      if (!instagramExtensionId) {
+        reject(new Error('Configure o "ID da extensão" em Configurações → Extensão do navegador primeiro.'));
+        return;
+      }
+      chromeApi.runtime.sendMessage(instagramExtensionId, message, (response) => {
+        if (chromeApi.runtime.lastError) {
+          reject(new Error(`Não consegui falar com a extensão: ${chromeApi.runtime.lastError.message}`));
+          return;
+        }
+        resolve((response as Record<string, unknown>) || {});
+      });
+    });
+  }
+
+  function markSyncing(id: string, on: boolean) {
+    setSyncingIds((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+
+  async function syncInstagramSource(source: SourceSummary) {
+    if (syncingIds.has(source.id)) return;
+    markSyncing(source.id, true);
+    try {
+      const res = await sendToExtension({ type: 'sync-source', sourceId: source.id });
+      if (res.ok === false) alert(String(res.error || 'Não foi possível sincronizar este perfil.'));
       loadItems();
       loadFolders();
-    });
+    } catch (err) {
+      alert((err as Error).message);
+    } finally {
+      markSyncing(source.id, false);
+    }
+  }
+
+  async function syncInstagramFolder(folder: FolderNode) {
+    if (syncingIds.has(folder.id)) return;
+    markSyncing(folder.id, true);
+    // Poll the extension for "i/total" progress while the folder run proceeds.
+    const poll = window.setInterval(async () => {
+      try {
+        const st = await sendToExtension({ type: 'get-status' });
+        const progress = st.progress as { activeFolderId: string; index: number; total: number } | null | undefined;
+        if (progress && progress.activeFolderId === folder.id) {
+          setFolderSyncProgress({ folderId: folder.id, index: progress.index, total: progress.total });
+        }
+      } catch {
+        /* ignore transient polling errors */
+      }
+    }, 3000);
+    try {
+      const res = await sendToExtension({ type: 'sync-folder', folderId: folder.id });
+      if (res.ok === false) alert(String(res.error || 'Não foi possível sincronizar a pasta.'));
+      loadItems();
+      loadFolders();
+    } catch (err) {
+      alert((err as Error).message);
+    } finally {
+      window.clearInterval(poll);
+      setFolderSyncProgress(null);
+      markSyncing(folder.id, false);
+    }
   }
 
   function handleSelectScope(next: SelectedScope) {
@@ -282,6 +339,10 @@ export default function App() {
         onOpenMessages={() => setPage('messages')}
         pendingDmCount={pendingDmCount}
         onFoldersChanged={loadFolders}
+        onSyncInstagramSource={syncInstagramSource}
+        onSyncInstagramFolder={syncInstagramFolder}
+        syncingIds={syncingIds}
+        folderSyncProgress={folderSyncProgress}
       />
 
       <div className="app-main">
@@ -300,8 +361,6 @@ export default function App() {
               onMarkAllRead={handleMarkAllRead}
               onRefresh={handleRefresh}
               refreshing={refreshing}
-              onSyncInstagram={handleSyncInstagram}
-              syncingInstagram={syncingInstagram}
               searchQuery={searchQuery}
               onSearchQueryChange={setSearchQuery}
             />

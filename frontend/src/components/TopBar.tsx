@@ -14,8 +14,6 @@ interface TopBarProps {
   onMarkAllRead: () => void;
   onRefresh: () => void;
   refreshing: boolean;
-  onSyncInstagram: () => void;
-  syncingInstagram: boolean;
   searchQuery: string;
   onSearchQueryChange: (q: string) => void;
 }
@@ -40,8 +38,6 @@ export function TopBar({
   onMarkAllRead,
   onRefresh,
   refreshing,
-  onSyncInstagram,
-  syncingInstagram,
   searchQuery,
   onSearchQueryChange,
 }: TopBarProps) {
@@ -97,13 +93,6 @@ export function TopBar({
         </button>
         <button className={`icon-btn ${refreshing ? 'spinning' : ''}`} title="Atualizar agora" onClick={onRefresh}>
           ⟳
-        </button>
-        <button
-          className={`icon-btn ${syncingInstagram ? 'spinning' : ''}`}
-          title="Sincronizar Instagram (via extensão)"
-          onClick={onSyncInstagram}
-        >
-          ◈
         </button>
       </div>
     </header>

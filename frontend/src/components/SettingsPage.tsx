@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { api, ApiError, API_BASE_URL } from '../api/client';
-import { InstagramScheduleEditor } from './InstagramScheduleEditor';
 import './SettingsPage.css';
 
 type Settings = Record<string, unknown>;
@@ -141,15 +140,11 @@ export function SettingsPage() {
           <p className="settings-error" style={{ color: 'var(--text-secondary)' }}>
             Instale a extensão "RSS Reader - Instagram Bridge", abra as Opções dela e cole a URL e o token acima. Ela vai
             buscar os perfis do Instagram usando sua sessão logada no navegador e enviar pra cá — só funciona enquanto o
-            navegador está aberto. Com o ID da extensão salvo aqui, o botão "◈" na barra superior do app também dispara
-            uma sincronização direto, sem precisar abrir o popup da extensão.
+            navegador está aberto. Com o ID da extensão salvo aqui, os botões "⟳" que aparecem ao passar o mouse sobre um
+            perfil de Instagram ou sobre uma pasta com perfis (na barra lateral) disparam a sincronização daquele perfil
+            ou pasta. Não há mais atualização automática — o Instagram só é lido quando você pede.
           </p>
         </div>
-      </section>
-
-      <section className="settings-section">
-        <h2>Agendamento por pasta — Instagram</h2>
-        <InstagramScheduleEditor />
       </section>
 
       <section className="settings-section">
