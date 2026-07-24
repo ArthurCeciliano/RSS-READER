@@ -195,26 +195,42 @@ function scrapePostPageInPage(username, pollTimeoutMs) {
         if (markers.some((m) => text.includes(m))) return 'error_ui';
         return null;
       }
-      function collect() {
+      // Instagram labels the grid under a post with "Mais posts de {owner}". That
+      // label is the ONLY reliable statement of WHOSE posts the grid holds, and it
+      // is what protects us from collab posts: a post co-authored with another
+      // account shows THAT account's grid. Ingesting it would not just add wrong
+      // items — since seeds come from the newest stored post, the next sync would
+      // open the other account's post and drag the whole feed over to them.
+      const GRID_LABEL_RE =
+        /(?:mais publica(?:ç|c)(?:ões|oes) de|mais posts de|more posts from|m(?:á|a)s publicaciones de)\s*@?([a-z0-9_.]+)/i;
+
+      function findGridLabel() {
+        for (const el of document.querySelectorAll('span, h1, h2, h3, div, a')) {
+          const txt = (el.textContent || '').trim();
+          if (!txt || txt.length > 80) continue; // skip big containers, match the label itself
+          const m = txt.match(GRID_LABEL_RE);
+          if (m) return { el, owner: m[1].toLowerCase() };
+        }
+        return null;
+      }
+
+      /** Collects ONLY the post links that come after the "more posts" label —
+       *  i.e. the grid itself, never the main post or unrelated links. */
+      function collect(labelEl) {
         const seen = new Set();
-        const posts = [];
-        document.querySelectorAll('a[href*="/p/"], a[href*="/reel/"]').forEach((a) => {
+        const out = [];
+        for (const a of document.querySelectorAll('a[href*="/p/"], a[href*="/reel/"]')) {
+          if (!(labelEl.compareDocumentPosition(a) & Node.DOCUMENT_POSITION_FOLLOWING)) continue;
           const href = a.getAttribute('href') || '';
           const m = href.match(/\/(?:([^/]+)\/)?(p|reel)\/([A-Za-z0-9_-]+)/);
-          if (!m) return;
+          if (!m) continue;
           const owner = m[1] && m[1] !== 'p' && m[1] !== 'reel' ? m[1].toLowerCase() : null;
+          if (owner && owner !== user) continue; // URL names another account -> drop
+          const shortcode = m[3];
+          if (seen.has(shortcode)) continue;
+          seen.add(shortcode);
           const img = a.querySelector('img');
-          posts.push({ owner, shortcode: m[3], alt: img?.getAttribute('alt') || '', imageUrl: img?.src || undefined });
-        });
-        // When links encode an owner, keep only this user's (drops any cross-account
-        // "related" posts); otherwise trust the whole "more posts" grid.
-        const scoped = posts.filter((p) => p.owner === user);
-        const pool = scoped.length ? scoped : posts;
-        const out = [];
-        for (const p of pool) {
-          if (seen.has(p.shortcode)) continue;
-          seen.add(p.shortcode);
-          out.push(p);
+          out.push({ shortcode, alt: img?.getAttribute('alt') || '', imageUrl: img?.src || undefined });
         }
         return out; // DOM order == newest first in the "more posts" grid
       }
@@ -235,15 +251,33 @@ function scrapePostPageInPage(username, pollTimeoutMs) {
       }
 
       const deadline = Date.now() + pollTimeoutMs;
-      let posts = collect();
-      while (posts.length === 0 && Date.now() < deadline) {
+      // 1) Wait for the "Mais posts de X" label. We refuse to read a grid whose
+      //    owner we cannot prove.
+      let label = findGridLabel();
+      while (!label && Date.now() < deadline) {
         if (detectUnavailable()) return { unavailable: true };
         await new Promise((r) => setTimeout(r, 500));
-        posts = collect();
+        label = findGridLabel();
       }
       const hasActiveStory = hasActiveStoryRing();
-      if (posts.length === 0) {
+      if (!label) {
         if (detectUnavailable()) return { unavailable: true };
+        const reason = detectBlockReason();
+        if (reason) return { blocked: true, reason, hasActiveStory };
+        return { unverified: true, hasActiveStory }; // ownership unproven -> ingest nothing
+      }
+      // 2) HARD GATE: the grid must belong to THIS source, or we take nothing.
+      //    This is what stops a collab post from importing the co-author's feed.
+      if (label.owner !== user) {
+        return { wrongOwner: true, gridOwner: label.owner, hasActiveStory };
+      }
+      // 3) Ownership proven — only now read the grid.
+      let posts = collect(label.el);
+      while (posts.length === 0 && Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 500));
+        posts = collect(label.el);
+      }
+      if (posts.length === 0) {
         const reason = detectBlockReason();
         if (reason) return { blocked: true, reason, hasActiveStory };
         return { empty: true, hasActiveStory };
@@ -377,7 +411,8 @@ async function fetchViaPostPage(username, shortcode) {
   try {
     await waitForTabComplete(tab.id);
     let result = await runPostScrape(tab.id, username, GRID_POLL_TIMEOUT_MS);
-    if (!result.items && result.empty && !result.blocked && !result.unavailable) {
+    // Retry once when the grid (or its owner label) simply hadn't rendered yet.
+    if (!result.items && (result.empty || result.unverified) && !result.blocked && !result.unavailable && !result.wrongOwner) {
       await delay(1500 + Math.random() * 1500);
       await chrome.tabs.reload(tab.id);
       await waitForTabComplete(tab.id);
@@ -385,6 +420,14 @@ async function fetchViaPostPage(username, shortcode) {
     }
     if (result.items) return { status: 'ok', items: result.items, hasActiveStory: result.hasActiveStory };
     if (result.unavailable) return { status: 'unavailable' };
+    if (result.wrongOwner) {
+      console.warn(`[IG] ${shortcode}: a grade é de @${result.gridOwner}, não de @${username} (post de collab) — ignorado`);
+      return { status: 'wrong_owner', gridOwner: result.gridOwner };
+    }
+    if (result.unverified) {
+      console.warn(`[IG] ${shortcode}: não deu pra provar de quem é a grade — nada ingerido`);
+      return { status: 'unverified' };
+    }
     if (result.blocked) return { status: 'blocked', reason: result.reason, hasActiveStory: result.hasActiveStory };
     if (result.empty) return { status: 'empty', hasActiveStory: result.hasActiveStory };
     return { status: 'blocked', reason: result.error || 'unknown' };
@@ -401,12 +444,17 @@ async function fetchViaPostPage(username, shortcode) {
  */
 async function fetchIgItems(username, seeds) {
   const codes = seeds || [];
+  let wrongOwner = null;
   for (const shortcode of codes) {
     const res = await fetchViaPostPage(username, shortcode);
     if (res.status === 'ok' || res.status === 'blocked') return res;
-    // 'unavailable' (post deleted) or 'empty' (slow) -> try the next seed
+    // A seed that is a collab post shows the CO-AUTHOR's grid. Never ingest it —
+    // walk on to an older seed until we find one that is provably this account's.
+    if (res.status === 'wrong_owner') wrongOwner = res.gridOwner;
+    // 'unavailable' | 'empty' | 'unverified' | 'wrong_owner' -> try the next seed
   }
   if (codes.length === 0) return fetchInstagramProfileItems(username); // bootstrap
+  if (wrongOwner) return { status: 'wrong_owner', gridOwner: wrongOwner, hasActiveStory: false };
   return { status: 'empty', hasActiveStory: false };
 }
 
@@ -435,7 +483,7 @@ async function reportReadLog(apiBaseUrl, apiToken, folderId, folderName, agg) {
 // --- Run engine (manual) ----------------------------------------------------
 
 function newAgg() {
-  return { ok: 0, empty: 0, blocked: 0, newTotal: 0 };
+  return { ok: 0, empty: 0, blocked: 0, wrongOwner: 0, newTotal: 0 };
 }
 
 /** Reads one profile and folds the outcome into `agg`. Returns the status. */
@@ -461,6 +509,14 @@ async function processProfile(apiBaseUrl, apiToken, item, agg) {
     agg.empty += 1;
     return 'empty';
   }
+  // Every saved seed for this source turned out to be a collab post showing
+  // someone else's grid. Nothing was ingested (that is the point), but the
+  // source is stuck until its contaminated items are cleared.
+  if (outcome.status === 'wrong_owner') {
+    agg.wrongOwner += 1;
+    agg.wrongOwnerName = outcome.gridOwner;
+    return 'wrong_owner';
+  }
   agg.blocked += 1;
   return 'blocked';
 }
@@ -485,6 +541,16 @@ async function syncSourceNow(sourceId) {
 
   const agg = newAgg();
   const status = await processProfile(apiBaseUrl, apiToken, item, agg);
+  // Surface this one loudly: it means the saved posts for this source belong to
+  // another account, so syncing can't move forward until they're cleaned out.
+  if (status === 'wrong_owner') {
+    return {
+      ok: false,
+      error:
+        `Os posts recentes salvos de @${item.username} são de OUTRA conta (@${agg.wrongOwnerName}) — provavelmente entraram por um post de collab. ` +
+        `Nada foi importado, de propósito. Apague os itens errados dessa fonte para destravar.`,
+    };
+  }
   return { ok: true, status, newTotal: agg.newTotal, ...agg };
 }
 
