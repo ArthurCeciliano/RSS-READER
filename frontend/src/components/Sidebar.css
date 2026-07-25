@@ -199,6 +199,28 @@
   animation: row-sync-spin 0.9s linear infinite;
 }
 
+/* The profile-feed sync opens the (rate-limited) profile page, so it reads as the
+   heavier, use-sparingly action — amber accent, no spin animation on its glyph. */
+.row-sync-btn.feed-sync {
+  font-size: 12px;
+}
+
+.row-sync-btn.feed-sync:hover {
+  color: var(--warning);
+}
+
+.row-sync-btn.feed-sync.spinning {
+  opacity: 1;
+  color: var(--warning);
+  animation: row-sync-pulse 0.9s ease-in-out infinite;
+}
+
+@keyframes row-sync-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
 @keyframes row-sync-spin {
   to {
     transform: rotate(360deg);

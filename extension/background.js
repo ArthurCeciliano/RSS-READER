@@ -98,6 +98,41 @@ async function cleanupStrayTab() {
 function scrapeProfileGridInPage(username, pollTimeoutMs) {
   return (async () => {
     try {
+      // Shared, robust "does this account have an active story?" detector. Defined
+      // inline because injected page scripts can't reference outer helpers.
+      function makeStoryRingDetector(name) {
+        const uname = String(name || '').toLowerCase();
+        return function hasActiveStoryRing() {
+          const avatars = [];
+          const add = (el) => {
+            if (el && !avatars.includes(el)) avatars.push(el);
+          };
+          add(document.querySelector(`a[href="/${uname}/"] img`));
+          for (const img of document.querySelectorAll('img[alt]')) {
+            const alt = (img.getAttribute('alt') || '').toLowerCase();
+            if (alt.includes(uname) && /perfil|profile/.test(alt)) add(img);
+          }
+          add(document.querySelector('header img'));
+          add(document.querySelector('section header img'));
+          add(document.querySelector('main header img'));
+          // Primary signal: the gradient ring is a <canvas> around the avatar.
+          for (const avatar of avatars) {
+            let node = avatar;
+            for (let i = 0; i < 5 && node; i++) {
+              if (node.querySelector && node.querySelector('canvas')) return true;
+              node = node.parentElement;
+            }
+          }
+          // Secondary: the story button is aria-labeled with the account's name
+          // (e.g. "história de disturbia"), excluding highlights ("destaques").
+          for (const el of document.querySelectorAll('[aria-label]')) {
+            const label = (el.getAttribute('aria-label') || '').toLowerCase();
+            if (/hist[óo]ria|story/.test(label) && label.includes(uname) && !/destaque|highlight/.test(label)) return true;
+          }
+          return false;
+        };
+      }
+
       function collectPosts() {
         const seen = new Set();
         const posts = [];
@@ -134,22 +169,22 @@ function scrapeProfileGridInPage(username, pollTimeoutMs) {
         return null;
       }
 
-      // No active story: the avatar <img> sits directly inside a real link
-      // (<a href="/username/">). With an active story it's wrapped in a <span>.
-      function hasActiveStoryRing() {
-        const header = document.querySelector('header') || document.querySelector('main');
-        const avatarImg = header?.querySelector('img');
-        if (!avatarImg) return false;
-        return avatarImg.parentElement?.tagName !== 'A';
-      }
+      const hasActiveStoryRing = makeStoryRingDetector(username);
 
       const deadline = Date.now() + pollTimeoutMs;
       let posts = collectPosts();
+      let hasActiveStory = hasActiveStoryRing();
       while (posts.length === 0 && Date.now() < deadline) {
         await new Promise((resolve) => setTimeout(resolve, 500));
         posts = collectPosts();
+        if (!hasActiveStory) hasActiveStory = hasActiveStoryRing();
       }
-      const hasActiveStory = hasActiveStoryRing();
+      // The header (with the story ring) loads even when the grid is blocked, so
+      // give the ring a couple more chances before concluding there's no story.
+      for (let k = 0; k < 2 && !hasActiveStory; k++) {
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        hasActiveStory = hasActiveStoryRing();
+      }
 
       if (posts.length === 0) {
         const reason = detectBlockReason();
@@ -187,6 +222,41 @@ function scrapePostPageInPage(username, pollTimeoutMs) {
   return (async () => {
     const user = String(username || '').toLowerCase();
     try {
+      // Shared, robust "does this account have an active story?" detector. Defined
+      // inline because injected page scripts can't reference outer helpers.
+      function makeStoryRingDetector(name) {
+        const uname = String(name || '').toLowerCase();
+        return function hasActiveStoryRing() {
+          const avatars = [];
+          const add = (el) => {
+            if (el && !avatars.includes(el)) avatars.push(el);
+          };
+          add(document.querySelector(`a[href="/${uname}/"] img`));
+          for (const img of document.querySelectorAll('img[alt]')) {
+            const alt = (img.getAttribute('alt') || '').toLowerCase();
+            if (alt.includes(uname) && /perfil|profile/.test(alt)) add(img);
+          }
+          add(document.querySelector('header img'));
+          add(document.querySelector('section header img'));
+          add(document.querySelector('main header img'));
+          // Primary signal: the gradient ring is a <canvas> around the avatar.
+          for (const avatar of avatars) {
+            let node = avatar;
+            for (let i = 0; i < 5 && node; i++) {
+              if (node.querySelector && node.querySelector('canvas')) return true;
+              node = node.parentElement;
+            }
+          }
+          // Secondary: the story button is aria-labeled with the account's name
+          // (e.g. "história de disturbia"), excluding highlights ("destaques").
+          for (const el of document.querySelectorAll('[aria-label]')) {
+            const label = (el.getAttribute('aria-label') || '').toLowerCase();
+            if (/hist[óo]ria|story/.test(label) && label.includes(uname) && !/destaque|highlight/.test(label)) return true;
+          }
+          return false;
+        };
+      }
+
       function detectUnavailable() {
         const t = document.body?.innerText || '';
         return /n[ãa]o est[áa] dispon[íi]vel|isn'?t available|no est[áa] disponible|Página não disponível/i.test(t);
@@ -277,21 +347,7 @@ function scrapePostPageInPage(username, pollTimeoutMs) {
         }
         return out; // DOM order == newest first in the "more posts" grid
       }
-      // An active story renders a gradient ring as a <canvas> wrapping the author
-      // avatar in the post header. Find the avatar, then walk a few ancestors up
-      // looking for that canvas — robust to how deeply Instagram nests the ring
-      // around the <img> (older code only checked the single nearest <div>).
-      function hasActiveStoryRing() {
-        const authorLink = document.querySelector(`a[href="/${user}/"]`);
-        const avatarImg = authorLink?.querySelector('img') || document.querySelector('header img') || document.querySelector('article img');
-        if (!avatarImg) return false;
-        let node = avatarImg;
-        for (let i = 0; i < 3 && node; i++) {
-          node = node.parentElement;
-          if (node && typeof node.querySelector === 'function' && node.querySelector('canvas')) return true;
-        }
-        return false;
-      }
+      const hasActiveStoryRing = makeStoryRingDetector(username);
 
       const deadline = Date.now() + pollTimeoutMs;
       // 1) Wait for the "Mais posts de X" label. We refuse to read a grid whose
@@ -302,7 +358,12 @@ function scrapePostPageInPage(username, pollTimeoutMs) {
         await new Promise((r) => setTimeout(r, 500));
         label = findGridLabel();
       }
-      const hasActiveStory = hasActiveStoryRing();
+      // Story ring can render a beat after the grid; retry briefly before deciding.
+      let hasActiveStory = hasActiveStoryRing();
+      for (let k = 0; k < 2 && !hasActiveStory; k++) {
+        await new Promise((r) => setTimeout(r, 400));
+        hasActiveStory = hasActiveStoryRing();
+      }
       if (!label) {
         if (detectUnavailable()) return { unavailable: true };
         const reason = detectBlockReason();
@@ -630,6 +691,57 @@ async function syncSourceNow(sourceId) {
   return { ok: true, status, newTotal: agg.newTotal, ...agg };
 }
 
+/**
+ * Manual "Atualizar pelo feed do perfil" on a SINGLE profile. Opens the account's
+ * own profile page and reads its grid directly. This surface is the one Instagram
+ * rate-limits, so it is exposed ONLY per-profile (never on folders) — the user
+ * chooses to spend it, one account at a time. No owner gate is needed: the profile
+ * page only shows this account's own posts. The header (with the story ring) loads
+ * even when the grid is blocked, so the story state is updated regardless.
+ */
+async function syncSourceFeedNow(sourceId) {
+  const { apiBaseUrl, apiToken } = await getConfig();
+  if (!apiBaseUrl || !apiToken) return { ok: false, error: 'not configured' };
+  await cleanupStrayTab();
+
+  let folders;
+  try {
+    folders = await fetchIgFolders(apiBaseUrl, apiToken);
+  } catch (err) {
+    return { ok: false, error: String(err?.message ?? err) };
+  }
+  const item = folders.flatMap((f) => f.sources).find((s) => s.sourceId === sourceId);
+  if (!item) return { ok: false, error: 'instagram source not found' };
+
+  let outcome;
+  try {
+    outcome = await fetchInstagramProfileItems(item.username);
+  } catch (err) {
+    outcome = { status: 'blocked', reason: String(err?.message ?? err) };
+  }
+
+  // Push whatever we got. Even on block/empty we still send the story flag, since
+  // the profile header + its ring render even when the grid errors out.
+  const items = outcome.status === 'ok' ? outcome.items : [];
+  let newTotal = 0;
+  if (typeof outcome.hasActiveStory === 'boolean' || items.length) {
+    try {
+      const r = await pushItems(apiBaseUrl, apiToken, item.sourceId, items, outcome.hasActiveStory);
+      newTotal = r.newItemCount || 0;
+    } catch {
+      /* network: still counts as read */
+    }
+  }
+
+  if (outcome.status === 'ok') return { ok: true, status: 'ok', newTotal, hadStory: outcome.hasActiveStory };
+  if (outcome.status === 'empty') return { ok: true, status: 'empty', newTotal: 0, hadStory: outcome.hasActiveStory };
+  return {
+    ok: false,
+    error: `O Instagram bloqueou o feed de @${item.username} ("Ocorreu um erro"). Tente de novo mais tarde, ou use o ⟳ (leitura pela página do post).`,
+    hadStory: outcome.hasActiveStory,
+  };
+}
+
 /** Manual "Sincronizar" on a folder: reads its DIRECT profiles in sequence. */
 async function syncFolderNow(folderId) {
   const { apiBaseUrl, apiToken } = await getConfig();
@@ -666,6 +778,10 @@ async function syncFolderNow(folderId) {
 function handleMessage(message, sendResponse) {
   if (message?.type === 'sync-source' && message.sourceId) {
     syncSourceNow(message.sourceId).then((r) => sendResponse(r));
+    return true;
+  }
+  if (message?.type === 'sync-source-feed' && message.sourceId) {
+    syncSourceFeedNow(message.sourceId).then((r) => sendResponse(r));
     return true;
   }
   if (message?.type === 'sync-folder' && message.folderId) {

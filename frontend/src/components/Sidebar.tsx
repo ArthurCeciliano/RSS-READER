@@ -22,6 +22,7 @@ interface SidebarProps {
   pendingDmCount: number;
   onFoldersChanged: () => void;
   onSyncInstagramSource: (source: SourceSummary) => void;
+  onSyncInstagramSourceFeed: (source: SourceSummary) => void;
   onSyncInstagramFolder: (folder: FolderNode) => void;
   syncingIds: Set<string>;
   folderSyncProgress: { folderId: string; index: number; total: number } | null;
@@ -71,6 +72,7 @@ interface FolderItemProps {
   onMoveSource: (sourceId: string, folderId: string | null) => void;
   onReorderSource: (draggedSourceId: string, targetFolder: FolderNode, targetSourceId: string) => void;
   onSyncInstagramSource: (source: SourceSummary) => void;
+  onSyncInstagramSourceFeed: (source: SourceSummary) => void;
   onSyncInstagramFolder: (folder: FolderNode) => void;
   syncingIds: Set<string>;
   folderSyncProgress: { folderId: string; index: number; total: number } | null;
@@ -96,6 +98,7 @@ function FolderItem({
   onMoveSource,
   onReorderSource,
   onSyncInstagramSource,
+  onSyncInstagramSourceFeed,
   onSyncInstagramFolder,
   syncingIds,
   folderSyncProgress,
@@ -179,6 +182,7 @@ function FolderItem({
                   onMoveSource={onMoveSource}
                   onReorderSource={onReorderSource}
                   onSyncInstagramSource={onSyncInstagramSource}
+                  onSyncInstagramSourceFeed={onSyncInstagramSourceFeed}
                   onSyncInstagramFolder={onSyncInstagramFolder}
                   syncingIds={syncingIds}
                   folderSyncProgress={folderSyncProgress}
@@ -216,18 +220,36 @@ function FolderItem({
                 {source.status !== 'ok' && <span className={`status-dot ${source.status}`} title={source.status} />}
                 {source.unreadCount > 0 && <span className="badge">{source.unreadCount}</span>}
                 {source.type === 'instagram' && (
-                  <span
-                    className={`row-sync-btn ${syncingIds.has(source.id) ? 'spinning' : ''}`}
-                    role="button"
-                    tabIndex={0}
-                    title={syncingIds.has(source.id) ? 'Sincronizando…' : 'Sincronizar este perfil do Instagram'}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (!syncingIds.has(source.id)) onSyncInstagramSource(source);
-                    }}
-                  >
-                    ⟳
-                  </span>
+                  <>
+                    <span
+                      className={`row-sync-btn feed-sync ${syncingIds.has(`feed:${source.id}`) ? 'spinning' : ''}`}
+                      role="button"
+                      tabIndex={0}
+                      title={
+                        syncingIds.has(`feed:${source.id}`)
+                          ? 'Abrindo o feed do perfil…'
+                          : 'Atualizar pelo feed do perfil — abre o perfil (use com moderação)'
+                      }
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!syncingIds.has(`feed:${source.id}`)) onSyncInstagramSourceFeed(source);
+                      }}
+                    >
+                      ▦
+                    </span>
+                    <span
+                      className={`row-sync-btn ${syncingIds.has(source.id) ? 'spinning' : ''}`}
+                      role="button"
+                      tabIndex={0}
+                      title={syncingIds.has(source.id) ? 'Sincronizando…' : 'Sincronizar (pela página do post)'}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!syncingIds.has(source.id)) onSyncInstagramSource(source);
+                      }}
+                    >
+                      ⟳
+                    </span>
+                  </>
                 )}
               </button>
             ))}
@@ -252,6 +274,7 @@ export function Sidebar({
   pendingDmCount,
   onFoldersChanged,
   onSyncInstagramSource,
+  onSyncInstagramSourceFeed,
   onSyncInstagramFolder,
   syncingIds,
   folderSyncProgress,
@@ -527,6 +550,7 @@ export function Sidebar({
             onMoveSource={handleMoveSource}
             onReorderSource={handleReorderSource}
             onSyncInstagramSource={onSyncInstagramSource}
+            onSyncInstagramSourceFeed={onSyncInstagramSourceFeed}
             onSyncInstagramFolder={onSyncInstagramFolder}
             syncingIds={syncingIds}
             folderSyncProgress={folderSyncProgress}

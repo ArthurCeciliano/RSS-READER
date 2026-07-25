@@ -281,6 +281,25 @@ export default function App() {
     }
   }
 
+  // Second, deliberately separate action: reads the account's MAIN profile feed
+  // (the rate-limited surface), only ever per-profile. Tracked under a "feed:" key
+  // so its spinner is independent from the post-page ⟳.
+  async function syncInstagramSourceFeed(source: SourceSummary) {
+    const key = `feed:${source.id}`;
+    if (syncingIds.has(key)) return;
+    markSyncing(key, true);
+    try {
+      const res = await sendToExtension({ type: 'sync-source-feed', sourceId: source.id });
+      if (res.ok === false) alert(String(res.error || 'Não foi possível atualizar pelo feed do perfil.'));
+      loadItems();
+      loadFolders();
+    } catch (err) {
+      alert((err as Error).message);
+    } finally {
+      markSyncing(key, false);
+    }
+  }
+
   async function syncInstagramFolder(folder: FolderNode) {
     if (syncingIds.has(folder.id)) return;
     markSyncing(folder.id, true);
@@ -353,6 +372,7 @@ export default function App() {
         pendingDmCount={pendingDmCount}
         onFoldersChanged={loadFolders}
         onSyncInstagramSource={syncInstagramSource}
+        onSyncInstagramSourceFeed={syncInstagramSourceFeed}
         onSyncInstagramFolder={syncInstagramFolder}
         syncingIds={syncingIds}
         folderSyncProgress={folderSyncProgress}
