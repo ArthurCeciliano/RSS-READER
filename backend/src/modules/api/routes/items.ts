@@ -35,19 +35,17 @@ export async function itemsRoutes(app: FastifyInstance) {
       }
     }
 
-    // Instagram items have no real publishedAt (the extension can't get an exact
-    // post date without risking a block -- see extension/background.js) --
-    // every one of them ties at null, so without a tiebreaker they'd come back
-    // in whatever arbitrary order Postgres feels like, making the sort toggle
-    // look like it does nothing for those items. createdAt (when we first saw
-    // it) breaks the tie in the same direction, which for Instagram happens to
-    // match real recency too: the profile grid is scraped newest-first, so
-    // earlier-discovered posts within a sync got an earlier createdAt.
+    // Instagram post dates are decoded from the shortcode by the extension now
+    // (extension/background.js), so most items carry a real publishedAt. Some
+    // older ones may still be null until re-read/backfilled, so keep nulls LAST
+    // (Postgres would otherwise float them to the top on a DESC sort) and fall
+    // back to createdAt for them. id is the final, stable tiebreaker so cursor
+    // pagination never skips or repeats a row on ties.
     const sortDir = sort === 'oldest' ? 'asc' : 'desc';
     const items = await prisma.item.findMany({
       where,
       include: { source: { select: { title: true, faviconUrl: true, siteUrl: true, type: true } } },
-      orderBy: [{ publishedAt: sortDir }, { createdAt: sortDir }],
+      orderBy: [{ publishedAt: { sort: sortDir, nulls: 'last' } }, { createdAt: sortDir }, { id: sortDir }],
       take: take + 1,
       ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
     });

@@ -661,11 +661,42 @@ async function fetchIgItems(sourceId, username, seeds) {
   return { status: 'empty', hasActiveStory };
 }
 
+// Instagram encodes the post's creation time in its shortcode. Decode the
+// base64 shortcode to the media id, then (id >> 23) ms + the IG epoch gives the
+// real publish time — no extra request, exact to the second (validated against
+// real posts). This is what lets the app show "há 30 min / 2 h / 3 dias" and
+// sort by POST date instead of by when we happened to read it.
+const IG_SHORTCODE_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+const IG_EPOCH_MS = 1314220021721n;
+function shortcodeToPublishedAtIso(shortcode) {
+  try {
+    if (!shortcode) return undefined;
+    let id = 0n;
+    for (const ch of shortcode) {
+      const k = IG_SHORTCODE_ALPHABET.indexOf(ch);
+      if (k < 0) return undefined; // not a shortcode we can decode
+      id = id * 64n + BigInt(k);
+    }
+    const ms = Number((id >> 23n) + IG_EPOCH_MS);
+    // Sanity gate: only trust plausible dates (2012-01-01 .. now+1d). If IG ever
+    // changes the shortcode scheme this fails closed → server keeps read time.
+    if (!Number.isFinite(ms) || ms < 1325376000000 || ms > Date.now() + 86400000) return undefined;
+    return new Date(ms).toISOString();
+  } catch {
+    return undefined;
+  }
+}
+
 async function pushItems(apiBaseUrl, apiToken, sourceId, items, hasActiveStory) {
+  // Fill each item's real post date from its shortcode (guid) when we don't
+  // already have one, so the server stores post-time, not read-time.
+  const withDates = (items || []).map((it) =>
+    it.publishedAt ? it : { ...it, publishedAt: shortcodeToPublishedAtIso(it.guid) },
+  );
   const res = await fetch(`${apiBaseUrl}/api/extension/instagram/${sourceId}/items`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Extension-Token': apiToken },
-    body: JSON.stringify({ items, hasActiveStory }),
+    body: JSON.stringify({ items: withDates, hasActiveStory }),
   });
   if (!res.ok) throw new Error(`push items failed: ${res.status}`);
   return res.json();
