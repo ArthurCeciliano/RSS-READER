@@ -133,6 +133,16 @@ function scrapeProfileGridInPage(username, pollTimeoutMs) {
         };
       }
 
+      function bestImageUrl(img) {
+        if (!img) return undefined;
+        const cur = img.currentSrc || img.getAttribute('src') || '';
+        if (/^https?:/i.test(cur)) return cur;
+        const ss = img.getAttribute('srcset') || '';
+        const first = ss.split(',')[0]?.trim().split(/\s+/)[0];
+        if (first && /^https?:/i.test(first)) return first;
+        return undefined;
+      }
+
       function collectPosts() {
         const seen = new Set();
         const posts = [];
@@ -143,7 +153,7 @@ function scrapeProfileGridInPage(username, pollTimeoutMs) {
           if (seen.has(shortcode)) return;
           seen.add(shortcode);
           const img = a.querySelector('img');
-          posts.push({ shortcode, alt: img?.getAttribute('alt') || '', imageUrl: img?.src || undefined });
+          posts.push({ shortcode, alt: img?.getAttribute('alt') || '', imageUrl: bestImageUrl(img) });
         });
         return posts;
       }
@@ -327,6 +337,34 @@ function scrapePostPageInPage(username, pollTimeoutMs) {
         return null;
       }
 
+      // The "more posts" grid sits BELOW the main post (off-screen on load), so
+      // its thumbnails are lazy: <img>.src is often a blank/1x1 placeholder until
+      // the row is scrolled near the viewport. This is why post-page reads landed
+      // image-less while profile reads (grid at the top) didn't. Prefer
+      // currentSrc, reject data: placeholders, and fall back to the first srcset URL.
+      function bestImageUrl(img) {
+        if (!img) return undefined;
+        const cur = img.currentSrc || img.getAttribute('src') || '';
+        if (/^https?:/i.test(cur)) return cur;
+        const ss = img.getAttribute('srcset') || '';
+        const first = ss.split(',')[0]?.trim().split(/\s+/)[0];
+        if (first && /^https?:/i.test(first)) return first;
+        return undefined;
+      }
+
+      // Pull the grid rows into view so their lazy thumbnails start loading. The
+      // tab is opened in the background (no user scroll to trigger it), so we do
+      // it ourselves, then scroll back to the top.
+      function nudgeLazyImages(labelEl) {
+        try { labelEl.scrollIntoView({ block: 'start' }); } catch {}
+        for (const a of document.querySelectorAll('a[href*="/p/"], a[href*="/reel/"]')) {
+          if (!(labelEl.compareDocumentPosition(a) & Node.DOCUMENT_POSITION_FOLLOWING)) continue;
+          const im = a.querySelector('img');
+          if (im) { try { im.scrollIntoView({ block: 'center' }); } catch {} }
+        }
+        try { window.scrollTo(0, 0); } catch {}
+      }
+
       /** Collects ONLY the post links that come after the "more posts" label —
        *  i.e. the grid itself, never the main post or unrelated links. */
       function collect(labelEl) {
@@ -343,7 +381,7 @@ function scrapePostPageInPage(username, pollTimeoutMs) {
           if (seen.has(shortcode)) continue;
           seen.add(shortcode);
           const img = a.querySelector('img');
-          out.push({ shortcode, alt: img?.getAttribute('alt') || '', imageUrl: img?.src || undefined });
+          out.push({ shortcode, alt: img?.getAttribute('alt') || '', imageUrl: bestImageUrl(img) });
         }
         return out; // DOM order == newest first in the "more posts" grid
       }
@@ -380,6 +418,20 @@ function scrapePostPageInPage(username, pollTimeoutMs) {
       while (posts.length === 0 && Date.now() < deadline) {
         await new Promise((r) => setTimeout(r, 500));
         posts = collect(label.el);
+      }
+      // Wait for the lazy thumbnails to resolve before returning, nudging them
+      // into view each pass — otherwise items get ingested image-less (exactly
+      // the bug this fixes). Best-effort: if some never load before the deadline,
+      // we still return what we have rather than blocking the whole run.
+      if (posts.length > 0) {
+        let withImg = posts.filter((p) => p.imageUrl).length;
+        while (withImg < posts.length && Date.now() < deadline) {
+          nudgeLazyImages(label.el);
+          if (!hasActiveStory) hasActiveStory = hasActiveStoryRing();
+          await new Promise((r) => setTimeout(r, 500));
+          posts = collect(label.el);
+          withImg = posts.filter((p) => p.imageUrl).length;
+        }
       }
       if (posts.length === 0) {
         const reason = detectBlockReason();
@@ -551,7 +603,7 @@ async function fetchViaPostPage(username, shortcode) {
     }
     if (result.unverified) {
       console.warn(`[IG] ${shortcode}: não deu pra provar de quem é a grade — nada ingerido`);
-      return { status: 'unverified' };
+      return { status: 'unverified', hasActiveStory: result.hasActiveStory };
     }
     if (result.blocked) return { status: 'blocked', reason: result.reason, hasActiveStory: result.hasActiveStory };
     if (result.empty) return { status: 'empty', hasActiveStory: result.hasActiveStory };
@@ -576,10 +628,21 @@ async function fetchIgItems(sourceId, username, seeds) {
 
   let wrongOwner = null;
   let attempts = 0;
+  // A post page's header shows the author's story ring even when its grid has no
+  // NEW posts, so we still learn the story state here. Remember it so an "empty"
+  // read can carry it to the server (turning a ring on OR off), the same way the
+  // profile-feed path already does — this is what makes stories update reliably
+  // through the post-page path too, not only when new posts happen to appear.
+  let sawStorySignal = false;
+  let observedStory = false;
   for (const shortcode of codes) {
     if (attempts >= MAX_SEED_ATTEMPTS) break;
     attempts += 1;
     const res = await fetchViaPostPage(username, shortcode);
+    if (typeof res.hasActiveStory === 'boolean') {
+      sawStorySignal = true;
+      observedStory = observedStory || res.hasActiveStory;
+    }
     if (res.status === 'ok') {
       await setGoodSeed(sourceId, shortcode); // proven to show OUR grid — reuse it
       return res;
@@ -591,8 +654,11 @@ async function fetchIgItems(sourceId, username, seeds) {
     if (good && shortcode === good) await clearGoodSeed(sourceId); // stale, drop it
     // 'unavailable' | 'empty' | 'unverified' | 'wrong_owner' -> try the next seed
   }
-  if (wrongOwner) return { status: 'wrong_owner', gridOwner: wrongOwner, hasActiveStory: false };
-  return { status: 'empty', hasActiveStory: false };
+  // undefined (not false) when no page ever loaded, so the caller can tell
+  // "no story" apart from "couldn't check" and avoid wrongly clearing a ring.
+  const hasActiveStory = sawStorySignal ? observedStory : undefined;
+  if (wrongOwner) return { status: 'wrong_owner', gridOwner: wrongOwner, hasActiveStory };
+  return { status: 'empty', hasActiveStory };
 }
 
 async function pushItems(apiBaseUrl, apiToken, sourceId, items, hasActiveStory) {
@@ -642,6 +708,26 @@ async function processProfile(apiBaseUrl, apiToken, item, agg) {
     agg.ok += 1;
     return 'ok';
   }
+
+  // Even with no new posts, a loaded post page still told us the story-ring
+  // state, so push JUST that flag (no items) — this is what lets a story
+  // starting or expiring show up through the post-page path, not only when new
+  // posts happen to appear. Skip outcomes where the page didn't really load
+  // (blocked/unavailable) or where the grid belonged to another account, since
+  // the ring we'd read there isn't trustworthy.
+  if (
+    typeof outcome.hasActiveStory === 'boolean' &&
+    outcome.status !== 'blocked' &&
+    outcome.status !== 'unavailable' &&
+    outcome.status !== 'wrong_owner'
+  ) {
+    try {
+      await pushItems(apiBaseUrl, apiToken, item.sourceId, [], outcome.hasActiveStory);
+    } catch {
+      /* story flag best-effort */
+    }
+  }
+
   if (outcome.status === 'empty') {
     agg.empty += 1;
     return 'empty';
