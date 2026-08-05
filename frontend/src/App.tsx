@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import './App.css';
 import { Sidebar } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
@@ -29,6 +29,69 @@ interface ChromeRuntime {
   };
 }
 
+// Public id of the Chrome extension (used only for the externally_connectable
+// path). Falls back to this when the user hasn't configured a custom id.
+const DEFAULT_CHROME_EXTENSION_ID = 'dgjgcjghhpmokjbiikdlpanbkcgbalpk';
+
+// window.postMessage bridge protocol (see extension/bridge.js). Used on
+// browsers without externally_connectable (e.g. Firefox): a content script
+// injected into this page relays messages to/from the extension background.
+const BRIDGE_REQUEST = 'ig-bridge:request';
+const BRIDGE_RESPONSE = 'ig-bridge:response';
+const BRIDGE_READY = 'ig-bridge:ready';
+
+interface BridgeResponse {
+  channel?: string;
+  id?: string;
+  response?: unknown;
+  error?: string;
+}
+
+function hasChromeExtensionChannel(): boolean {
+  const chromeApi = (window as unknown as { chrome?: ChromeRuntime }).chrome;
+  return Boolean(chromeApi?.runtime && typeof chromeApi.runtime.sendMessage === 'function');
+}
+
+// Chrome path: talk to the extension directly via externally_connectable.
+function callViaChrome(extensionId: string, message: unknown): Promise<Record<string, unknown>> {
+  return new Promise((resolve, reject) => {
+    const chromeApi = (window as unknown as { chrome?: ChromeRuntime }).chrome;
+    if (!chromeApi?.runtime?.sendMessage) {
+      reject(new Error('chrome-channel-unavailable'));
+      return;
+    }
+    chromeApi.runtime.sendMessage(extensionId, message, (response) => {
+      if (chromeApi.runtime.lastError) {
+        reject(new Error(chromeApi.runtime.lastError.message));
+        return;
+      }
+      resolve((response as Record<string, unknown>) || {});
+    });
+  });
+}
+
+// Bridge path: post the same payload the Chrome path would send and wait for
+// the content script to relay the background's reply back on the same id.
+function callViaBridge(message: unknown, timeoutMs = 60_000): Promise<Record<string, unknown>> {
+  return new Promise((resolve, reject) => {
+    const id = Math.random().toString(36).slice(2);
+    const onMsg = (event: MessageEvent) => {
+      const d = event.data as BridgeResponse | null;
+      if (!d || d.channel !== BRIDGE_RESPONSE || d.id !== id) return;
+      window.clearTimeout(timer);
+      window.removeEventListener('message', onMsg);
+      if (d.error) reject(new Error(d.error));
+      else resolve((d.response as Record<string, unknown>) || {});
+    };
+    const timer = window.setTimeout(() => {
+      window.removeEventListener('message', onMsg);
+      reject(new Error('bridge-timeout'));
+    }, timeoutMs);
+    window.addEventListener('message', onMsg);
+    window.postMessage({ channel: BRIDGE_REQUEST, id, payload: message }, '*');
+  });
+}
+
 export default function App() {
   const [folders, setFolders] = useState<FolderNode[]>([]);
   const [scope, setScope] = useState<SelectedScope>({ kind: 'all', label: 'Todos os itens' });
@@ -51,6 +114,9 @@ export default function App() {
   const [markArticleAsReadSetting, setMarkArticleAsReadSetting] = useState<'on_display' | 'on_click' | 'manual'>('on_display');
   const [pendingDmCount, setPendingDmCount] = useState(0);
   const [notifiedDmIds] = useState<Set<string>>(() => new Set());
+  // True once we've seen the postMessage bridge (Firefox). Lets us pick a long
+  // timeout for real syncs while still failing fast when no extension exists.
+  const bridgeReadyRef = useRef(false);
 
   const loadFolders = useCallback(() => {
     api.getFolders().then((r) => setFolders(r.folders)).catch(() => {});
@@ -81,6 +147,24 @@ export default function App() {
   useEffect(() => {
     loadFolders();
   }, [loadFolders]);
+
+  // Detect the Firefox postMessage bridge early: it announces itself on load,
+  // and we also probe once in case that signal fired before we mounted.
+  useEffect(() => {
+    const onReady = (event: MessageEvent) => {
+      const d = event.data as { channel?: string } | null;
+      if (d && d.channel === BRIDGE_READY) bridgeReadyRef.current = true;
+    };
+    window.addEventListener('message', onReady);
+    callViaBridge({ type: 'get-status' }, 2500)
+      .then(() => {
+        bridgeReadyRef.current = true;
+      })
+      .catch(() => {
+        /* no bridge on this page (Chrome, or extension not installed) */
+      });
+    return () => window.removeEventListener('message', onReady);
+  }, []);
 
   useEffect(() => {
     api
@@ -233,28 +317,38 @@ export default function App() {
     api.updateSource(sourceId, { storyAcknowledged: true }).catch(() => {});
   }
 
-  // Promise wrapper over the extension's callback-style messaging (see
-  // extension/manifest.json externally_connectable). Rejects with a friendly
-  // message when the extension isn't installed / its ID isn't configured yet.
-  function sendToExtension(message: unknown): Promise<Record<string, unknown>> {
-    return new Promise((resolve, reject) => {
-      const chromeApi = (window as unknown as { chrome?: ChromeRuntime }).chrome;
-      if (!chromeApi?.runtime?.sendMessage) {
-        reject(new Error('Extensão não detectada neste navegador (precisa do Chrome com a extensão instalada).'));
-        return;
+  // Unified wrapper over the extension messaging. Prefers the Chrome path
+  // (externally_connectable) and falls back to the postMessage bridge on
+  // browsers without it (e.g. Firefox). Rejects with a friendly message only
+  // when neither path can reach the extension.
+  const EXTENSION_NOT_DETECTED =
+    'Extensão não detectada neste navegador. Instale a extensão no Chrome ou no Firefox e tente novamente.';
+
+  async function sendToExtension(message: unknown): Promise<Record<string, unknown>> {
+    const extensionId = instagramExtensionId || DEFAULT_CHROME_EXTENSION_ID;
+
+    // Preferred path on Chrome. If it fails (extension missing here), fall
+    // through and let the bridge try.
+    if (hasChromeExtensionChannel()) {
+      try {
+        return await callViaChrome(extensionId, message);
+      } catch {
+        /* fall through to the postMessage bridge */
       }
-      if (!instagramExtensionId) {
-        reject(new Error('Configure o "ID da extensão" em Configurações → Extensão do navegador primeiro.'));
-        return;
+    }
+
+    // Bridge path (Firefox). Confirm the bridge is actually present before
+    // committing to a long-running request, so a browser with no extension
+    // fails fast with a friendly message instead of hanging on the timeout.
+    if (!bridgeReadyRef.current) {
+      try {
+        await callViaBridge({ type: 'get-status' }, 4000);
+        bridgeReadyRef.current = true;
+      } catch {
+        throw new Error(EXTENSION_NOT_DETECTED);
       }
-      chromeApi.runtime.sendMessage(instagramExtensionId, message, (response) => {
-        if (chromeApi.runtime.lastError) {
-          reject(new Error(`Não consegui falar com a extensão: ${chromeApi.runtime.lastError.message}`));
-          return;
-        }
-        resolve((response as Record<string, unknown>) || {});
-      });
-    });
+    }
+    return callViaBridge(message);
   }
 
   function markSyncing(id: string, on: boolean) {
