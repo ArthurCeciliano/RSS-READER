@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "RSS Reader - Instagram Bridge",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Fetches Instagram posts for profiles imported into your self-hosted RSS Reader, using your own logged-in browser session, and pushes them to your server.",
   "permissions": ["storage", "scripting", "tabs"],
   "host_permissions": ["https://www.instagram.com/*", "http://179.197.226.119:3001/*"],

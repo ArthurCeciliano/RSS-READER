@@ -344,8 +344,17 @@ export default function App() {
       try {
         await callViaBridge({ type: 'get-status' }, 4000);
         bridgeReadyRef.current = true;
-      } catch {
-        throw new Error(EXTENSION_NOT_DETECTED);
+      } catch (e) {
+        const reason = (e as Error).message || 'erro desconhecido';
+        // A timeout means nothing answered the postMessage probe — the content
+        // script bridge isn't running on this page (no extension, or it's not
+        // allowed to run here).
+        if (reason === 'bridge-timeout') {
+          throw new Error(EXTENSION_NOT_DETECTED);
+        }
+        // The bridge answered but the extension's background failed — surface
+        // the underlying reason instead of hiding it behind a generic message.
+        throw new Error(`Ponte encontrada, mas a extensão falhou: ${reason}`);
       }
     }
     return callViaBridge(message);
