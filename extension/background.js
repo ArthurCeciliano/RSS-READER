@@ -915,4 +915,12 @@ function handleMessage(message, sendResponse) {
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => handleMessage(message, sendResponse));
-chrome.runtime.onMessageExternal.addListener((message, _sender, sendResponse) => handleMessage(message, sendResponse));
+// externally_connectable / onMessageExternal only exists on Chrome. On Firefox
+// `chrome.runtime.onMessageExternal` is undefined, and touching `.addListener`
+// on it throws while the background loads — which stops the whole background
+// from answering messages (the app then reports "extension not detected", even
+// though the Firefox bridge relays correctly). Guard it so Firefox is happy;
+// there, the app reaches us through bridge.js + onMessage above instead.
+if (chrome.runtime.onMessageExternal) {
+  chrome.runtime.onMessageExternal.addListener((message, _sender, sendResponse) => handleMessage(message, sendResponse));
+}
